@@ -1,4 +1,9 @@
-version 0.3a: 
+version 0.4: 
+ - added 24/32 bit rendering support (Olivier Landemarre - F. Bellard)
+ - fixed GL_TRIANGLE_STRIP (Olivier Landemarre)
+ - added gl_malloc, gl_free, gl_zalloc wrappers (Olivier Landemarre)
+
+version 0.3:
  - added NanoX API (nglx) (F. Bellard)
  - added gears example and unified GUI in examples (F. Bellard)
  - added TGL_FEATURE_RENDER_BITS so that it will be possible to render

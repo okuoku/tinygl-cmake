@@ -178,17 +178,17 @@ void gl_draw_line(GLContext *c,GLVertex *p1,GLVertex *p2)
 static float name(V4 *c,V4 *a,V4 *b) \
 {\
   float t,dX,dY,dZ,dW,den;\
-  dX=(b->X-a->X);\
-  dY=(b->Y-a->Y);\
-  dZ=(b->Z-a->Z);\
-  dW=(b->W-a->W);\
-  den=-(sign d ## dir) + dW;\
+  dX = (b->X - a->X);\
+  dY = (b->Y - a->Y);\
+  dZ = (b->Z - a->Z);\
+  dW = (b->W - a->W);\
+  den = -(sign d ## dir) + dW;\
   if (den == 0) t=0;\
-  else t=( sign a-> ## dir - a->W) / den;\
-  c-> ## dir1=a-> ## dir1 + t * d ## dir1;\
-  c-> ## dir2=a-> ## dir2 + t * d ## dir2;\
-  c->W=a->W + t * dW;\
-  c-> ## dir = sign c->W;\
+  else t = ( sign a->dir - a->W) / den;\
+  c->dir1 = a->dir1 + t * d ## dir1;\
+  c->dir2 = a->dir2 + t * d ## dir2;\
+  c->W = a->W + t * dW;\
+  c->dir = sign c->W;\
   return t;\
 }
 

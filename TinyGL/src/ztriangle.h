@@ -5,10 +5,11 @@
 {
   ZBufferPoint *t,*pr1,*pr2,*l1,*l2;
   float fdx1, fdx2, fdy1, fdy2, fz, d1, d2;
-  unsigned short *pp1,*pz1;
+  unsigned short *pz1;
+  PIXEL *pp1;
   int part,update_left,update_right;
 
-  int nb_lines,adr,dx1,dy1,tmp,dx2,dy2;
+  int nb_lines,dx1,dy1,tmp,dx2,dy2;
 
   int error,derror;
   int x1,dxdy_min,dxdy_max;
@@ -131,9 +132,8 @@
 
   /* screen coordinates */
 
-  adr=p0->y * zb->xsize;
-  pp1 = zb->pbuf + adr;
-  pz1 = zb->zbuf + adr;
+  pp1 = (PIXEL *) ((char *) zb->pbuf + zb->linesize * p0->y);
+  pz1 = zb->zbuf + p0->y * zb->xsize;
 
   DRAW_INIT();
 
@@ -240,7 +240,67 @@
 
     while (nb_lines>0) {
       nb_lines--;
+#ifndef DRAW_LINE
+      /* generic draw line */
+      {
+          register PIXEL *pp;
+          register int n;
+#ifdef INTERP_Z
+          register unsigned short *pz;
+          register unsigned int z,zz;
+#endif
+#ifdef INTERP_RGB
+          register unsigned int or1,og1,ob1;
+#endif
+#ifdef INTERP_ST
+          register unsigned int s,t;
+#endif
+#ifdef INTERP_STZ
+          float sz,tz;
+#endif
+
+          n=(x2 >> 16) - x1;
+          pp=(PIXEL *)((char *)pp1 + x1 * PSZB);
+#ifdef INTERP_Z
+          pz=pz1+x1;
+          z=z1;
+#endif
+#ifdef INTERP_RGB
+          or1 = r1;
+          og1 = g1;
+          ob1 = b1;
+#endif
+#ifdef INTERP_ST
+          s=s1;
+          t=t1;
+#endif
+#ifdef INTERP_STZ
+          sz=sz1;
+          tz=tz1;
+#endif
+          while (n>=3) {
+              PUT_PIXEL(0);
+              PUT_PIXEL(1);
+              PUT_PIXEL(2);
+              PUT_PIXEL(3);
+#ifdef INTERP_Z
+              pz+=4;
+#endif
+              pp=(PIXEL *)((char *)pp + 4 * PSZB);
+              n-=4;
+          }
+          while (n>=0) {
+              PUT_PIXEL(0);
+#ifdef INTERP_Z
+              pz+=1;
+#endif
+              pp=(PIXEL *)((char *)pp + PSZB);
+              n-=1;
+          }
+      }
+#else
       DRAW_LINE();
+#endif
       
       /* left edge */
       error+=derror;
@@ -287,7 +347,7 @@
       x2+=dx2dy2;
 
       /* screen coordinates */
-      pp1+=zb->xsize;
+      pp1=(PIXEL *)((char *)pp1 + zb->linesize);
       pz1+=zb->xsize;
     }
   }
@@ -300,3 +360,4 @@
 
 #undef DRAW_INIT
 #undef DRAW_LINE  
+#undef PUT_PIXEL

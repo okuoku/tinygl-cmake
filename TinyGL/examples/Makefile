@@ -7,16 +7,16 @@ all: $(PROGS)
 clean:
 	rm -f core *.o *~ $(PROGS)
 
-mech: mech.o glu.o $(UI_OBJS)
+mech: mech.o glu.o $(UI_OBJS) $(GL_DEPS)
 	$(CC) $(LFLAGS) $^ -o $@ $(GL_LIBS) $(UI_LIBS) -lm
 
-texobj: texobj.o $(UI_OBJS)
+texobj: texobj.o $(UI_OBJS) $(GL_DEPS)
 	$(CC) $(LFLAGS) $^ -o $@ $(GL_LIBS) $(UI_LIBS) -lm
 
-gears: gears.o $(UI_OBJS)
+gears: gears.o $(UI_OBJS) $(GL_DEPS)
 	$(CC) $(LFLAGS) $^ -o $@ $(GL_LIBS) $(UI_LIBS) -lm
 
-spin: spin.o $(UI_OBJS)
+spin: spin.o $(UI_OBJS) $(GL_DEPS)
 	$(CC) $(LFLAGS) $^ -o $@ $(GL_LIBS) $(UI_LIBS) -lm
 
 .c.o:

@@ -18,7 +18,7 @@ ZBuffer *ZB_open(int xsize, int ysize, int mode,
     ZBuffer *zb;
     int size;
 
-    zb = malloc(sizeof(ZBuffer));
+    zb = gl_malloc(sizeof(ZBuffer));
     if (zb == NULL)
 	return NULL;
 
@@ -48,14 +48,14 @@ ZBuffer *ZB_open(int xsize, int ysize, int mode,
 
     size = zb->xsize * zb->ysize * sizeof(unsigned short);
 
-    zb->zbuf = malloc(size);
+    zb->zbuf = gl_malloc(size);
     if (zb->zbuf == NULL)
 	goto error;
 
     if (frame_buffer == NULL) {
-	zb->pbuf = malloc(zb->ysize * zb->linesize);
+	zb->pbuf = gl_malloc(zb->ysize * zb->linesize);
 	if (zb->pbuf == NULL) {
-	    free(zb->zbuf);
+	    gl_free(zb->zbuf);
 	    goto error;
 	}
 	zb->frame_buffer_allocated = 1;
@@ -68,7 +68,7 @@ ZBuffer *ZB_open(int xsize, int ysize, int mode,
 
     return zb;
   error:
-    free(zb);
+    gl_free(zb);
     return NULL;
 }
 
@@ -80,10 +80,10 @@ void ZB_close(ZBuffer * zb)
 #endif
 
     if (zb->frame_buffer_allocated)
-	free(zb->pbuf);
+	gl_free(zb->pbuf);
 
-    free(zb->zbuf);
-    free(zb);
+    gl_free(zb->zbuf);
+    gl_free(zb);
 }
 
 void ZB_resize(ZBuffer * zb, void *frame_buffer, int xsize, int ysize)
@@ -99,14 +99,14 @@ void ZB_resize(ZBuffer * zb, void *frame_buffer, int xsize, int ysize)
 
     size = zb->xsize * zb->ysize * sizeof(unsigned short);
 
-    free(zb->zbuf);
-    zb->zbuf = malloc(size);
+    gl_free(zb->zbuf);
+    zb->zbuf = gl_malloc(size);
 
     if (zb->frame_buffer_allocated)
-	free(zb->pbuf);
+	gl_free(zb->pbuf);
 
     if (frame_buffer == NULL) {
-	zb->pbuf = malloc(zb->ysize * zb->linesize);
+	zb->pbuf = gl_malloc(zb->ysize * zb->linesize);
 	zb->frame_buffer_allocated = 1;
     } else {
 	zb->pbuf = frame_buffer;
@@ -114,15 +114,12 @@ void ZB_resize(ZBuffer * zb, void *frame_buffer, int xsize, int ysize)
     }
 }
 
-#if TGL_FEATURE_RENDER_BITS == 16
-
-/* 16 bpp copy */
-
-void ZB_copyFrameBuffer5R6G5B(ZBuffer * zb,
-			      void *buf,
-			      int linesize)
+static void ZB_copyBuffer(ZBuffer * zb,
+                          void *buf,
+                          int linesize)
 {
-    unsigned short *p1, *q;
+    unsigned char *p1;
+    PIXEL *q;
     int y, n;
 
     q = zb->pbuf;
@@ -134,6 +131,8 @@ void ZB_copyFrameBuffer5R6G5B(ZBuffer * zb,
 	q = (PIXEL *) ((char *) q + zb->linesize);
     }
 }
+
+#if TGL_FEATURE_RENDER_BITS == 16
 
 /* 32 bpp copy */
 
@@ -149,9 +148,9 @@ void ZB_copyFrameBuffer5R6G5B(ZBuffer * zb,
     p1 = (gb >> 16) | ((v & 0xF8000000) >> 8);\
 }
 
-void ZB_copyFrameBufferRGB32(ZBuffer * zb,
-			     void *buf,
-			     int linesize)
+static void ZB_copyFrameBufferRGB32(ZBuffer * zb,
+                                    void *buf,
+                                    int linesize)
 {
     unsigned short *q;
     unsigned int *p, *p1, v, w0, w1;
@@ -239,9 +238,9 @@ void ZB_copyFrameBufferRGB32(ZBuffer * zb,
 
 #endif
 
-void ZB_copyFrameBufferRGB24(ZBuffer * zb,
-			     void *buf,
-			     int linesize)
+static void ZB_copyFrameBufferRGB24(ZBuffer * zb,
+                                    void *buf,
+                                    int linesize)
 {
     unsigned short *q;
     unsigned int *p, *p1, w0, w1, w2, v0, v1;
@@ -272,34 +271,141 @@ void ZB_copyFrameBufferRGB24(ZBuffer * zb,
 
 #endif
 
-#endif /* TGL_FEATURE_RENDER_BITS == 16 */
-
 void ZB_copyFrameBuffer(ZBuffer * zb, void *buf,
 			int linesize)
 {
     switch (zb->mode) {
 #ifdef TGL_FEATURE_8_BITS
     case ZB_MODE_INDEX:
-	ZB_ditherFrameBuffer(zb, buf, linesize);
+	ZB_ditherFrameBuffer(zb, buf, linesize >> 1);
 	break;
 #endif
+#ifdef TGL_FEATURE_16_BITS
     case ZB_MODE_5R6G5B:
-	ZB_copyFrameBuffer5R6G5B(zb, buf, linesize);
+	ZB_copyBuffer(zb, buf, linesize);
 	break;
+#endif
 #ifdef TGL_FEATURE_32_BITS
     case ZB_MODE_RGBA:
-	ZB_copyFrameBufferRGB32(zb, buf, linesize);
+	ZB_copyFrameBufferRGB32(zb, buf, linesize >> 1);
 	break;
 #endif
 #ifdef TGL_FEATURE_24_BITS
     case ZB_MODE_RGB24:
-	ZB_copyFrameBufferRGB32(zb, buf, linesize);
+	ZB_copyFrameBufferRGB24(zb, buf, linesize >> 1);
 	break;
 #endif
     default:
 	assert(0);
     }
 }
+
+#endif /* TGL_FEATURE_RENDER_BITS == 16 */
+
+#if TGL_FEATURE_RENDER_BITS == 24
+
+#define RGB24_TO_RGB16(r, g, b) \
+  ((((r) >> 3) << 11) | (((g) >> 2) << 5) | ((b) >> 3))
+
+/* XXX: not optimized */
+static void ZB_copyFrameBuffer5R6G5B(ZBuffer * zb, 
+                                     void *buf, int linesize) 
+{
+    PIXEL *q;
+    unsigned short *p, *p1;
+    int y, n;
+
+    q = zb->pbuf;
+    p1 = (unsigned short *) buf;
+
+    for (y = 0; y < zb->ysize; y++) {
+	p = p1;
+	n = zb->xsize >> 2;
+	do {
+            p[0] = RGB24_TO_RGB16(q[0], q[1], q[2]);
+            p[1] = RGB24_TO_RGB16(q[3], q[4], q[5]);
+            p[2] = RGB24_TO_RGB16(q[6], q[7], q[8]);
+            p[3] = RGB24_TO_RGB16(q[9], q[10], q[11]);
+	    q = (PIXEL *)((char *)q + 4 * PSZB);
+	    p += 4;
+	} while (--n > 0);
+	p1 = (unsigned short *)((char *)p1 + linesize);
+    }
+}
+
+void ZB_copyFrameBuffer(ZBuffer * zb, void *buf,
+			int linesize)
+{
+    switch (zb->mode) {
+#ifdef TGL_FEATURE_16_BITS
+    case ZB_MODE_5R6G5B:
+	ZB_copyFrameBuffer5R6G5B(zb, buf, linesize);
+	break;
+#endif
+#ifdef TGL_FEATURE_24_BITS
+    case ZB_MODE_RGB24:
+	ZB_copyBuffer(zb, buf, linesize);
+	break;
+#endif
+    default:
+	assert(0);
+    }
+}
+
+#endif /* TGL_FEATURE_RENDER_BITS == 24 */
+
+#if TGL_FEATURE_RENDER_BITS == 32
+
+#define RGB32_TO_RGB16(v) \
+  (((v >> 8) & 0xf800) | (((v) >> 5) & 0x07e0) | (((v) & 0xff) >> 3))
+
+/* XXX: not optimized */
+static void ZB_copyFrameBuffer5R6G5B(ZBuffer * zb, 
+                                     void *buf, int linesize) 
+{
+    PIXEL *q;
+    unsigned short *p, *p1;
+    int y, n;
+
+    q = zb->pbuf;
+    p1 = (unsigned short *) buf;
+
+    for (y = 0; y < zb->ysize; y++) {
+	p = p1;
+	n = zb->xsize >> 2;
+	do {
+            p[0] = RGB32_TO_RGB16(q[0]);
+            p[1] = RGB32_TO_RGB16(q[1]);
+            p[2] = RGB32_TO_RGB16(q[2]);
+            p[3] = RGB32_TO_RGB16(q[3]);
+	    q += 4;
+	    p += 4;
+	} while (--n > 0);
+	p1 = (unsigned short *)((char *)p1 + linesize);
+    }
+}
+
+void ZB_copyFrameBuffer(ZBuffer * zb, void *buf,
+			int linesize)
+{
+    switch (zb->mode) {
+#ifdef TGL_FEATURE_16_BITS
+    case ZB_MODE_5R6G5B:
+	ZB_copyFrameBuffer5R6G5B(zb, buf, linesize);
+	break;
+#endif
+#ifdef TGL_FEATURE_32_BITS
+    case ZB_MODE_RGBA:
+	ZB_copyBuffer(zb, buf, linesize);
+	break;
+#endif
+    default:
+	assert(0);
+    }
+}
+
+#endif /* TGL_FEATURE_RENDER_BITS == 32 */
+
 
 /*
  * adr must be aligned on an 'int'
@@ -349,23 +455,60 @@ void memset_l(void *adr, int val, int count)
 	*p++ = val;
 }
 
+/* count must be a multiple of 4 and >= 4 */
+void memset_RGB24(void *adr,int r, int v, int b,long count)
+{
+    long i, n;
+    register long v1,v2,v3,*pt=(long *)(adr);
+    unsigned char *p,R=(unsigned char)r,V=(unsigned char)v,B=(unsigned char)b;
+
+    p=(unsigned char *)adr;
+    *p++=R;
+    *p++=V;
+    *p++=B;
+    *p++=R;
+    *p++=V;
+    *p++=B;
+    *p++=R;
+    *p++=V;
+    *p++=B;
+    *p++=R;
+    *p++=V;
+    *p++=B;
+    v1=*pt++;
+    v2=*pt++;
+    v3=*pt++;
+    n = count >> 2;
+    for(i=1;i<n;i++) {
+        *pt++=v1;
+        *pt++=v2;
+        *pt++=v3;
+    }
+}
+
 void ZB_clear(ZBuffer * zb, int clear_z, int z,
 	      int clear_color, int r, int g, int b)
 {
-    int color, y;
+#if TGL_FEATURE_RENDER_BITS != 24
+    int color;
+#endif
+    int y;
     PIXEL *pp;
 
     if (clear_z) {
 	memset_s(zb->zbuf, z, zb->xsize * zb->ysize);
     }
     if (clear_color) {
-	color = RGB_TO_PIXEL(r, g, b);
 	pp = zb->pbuf;
 	for (y = 0; y < zb->ysize; y++) {
 #if TGL_FEATURE_RENDER_BITS == 15 || TGL_FEATURE_RENDER_BITS == 16
+            color = RGB_TO_PIXEL(r, g, b);
 	    memset_s(pp, color, zb->xsize);
 #elif TGL_FEATURE_RENDER_BITS == 32
+            color = RGB_TO_PIXEL(r, g, b);
 	    memset_l(pp, color, zb->xsize);
+#elif TGL_FEATURE_RENDER_BITS == 24 
+            memset_RGB24(pp,r>>8,g>>8,b>>8,zb->xsize);
 #else
 #error TODO
 #endif

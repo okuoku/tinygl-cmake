@@ -14,7 +14,7 @@ typedef struct {
   GC gc;
   Colormap cmap;
   Drawable drawable;
-
+  int do_convert; /* true if must do convertion to X11 format */
   /* shared memory */
   int shm_use;
   XShmSegmentInfo *shm_info;
@@ -62,7 +62,7 @@ GLXContext glXCreateContext( Display *dpy, XVisualInfo *vis,
   if (shareList != NULL) {
     gl_fatal_error("No sharing available in TinyGL");
   }
-  ctx=malloc(sizeof(TinyGLXContext));
+  ctx=gl_malloc(sizeof(TinyGLXContext));
   ctx->gl_context=NULL;
   ctx->visual_info=*vis;
   return (GLXContext) ctx;
@@ -75,7 +75,7 @@ void glXDestroyContext( Display *dpy, GLXContext ctx1 )
   if (ctx->gl_context != NULL) {
     glClose();
   }
-  free(ctx);
+  gl_free(ctx);
 }
 
 
@@ -87,24 +87,24 @@ static int glxHandleXError(Display *dpy,XErrorEvent *event)
   return 0;
 }
 
-static int bits_per_pixel(Display *dpy,XVisualInfo *visinfo)
+static int bits_per_pixel(Display *dpy, XVisualInfo *visinfo)
 {
    XImage *img;
    int bpp;
    char *data;
 
-   data = malloc(8);
+   data = gl_malloc(8);
    if (data == NULL) 
        return visinfo->depth;
 
    img = XCreateImage(dpy, visinfo->visual, visinfo->depth,
                       ZPixmap, 0, data, 1, 1, 32, 0);
    if (img == NULL) {
-       free(data);
+       gl_free(data);
        return visinfo->depth;
    }
    bpp = img->bits_per_pixel;
-   free(data);
+   gl_free(data);
    img->data = NULL;
    XDestroyImage(img);
    return bpp;
@@ -125,13 +125,13 @@ static int create_ximage(TinyGLXContext *ctx,
 
   if (!ctx->shm_use) goto no_shm;
 
-  ctx->shm_info=malloc(sizeof(XShmSegmentInfo));
+  ctx->shm_info=gl_malloc(sizeof(XShmSegmentInfo));
   ctx->ximage=XShmCreateImage(ctx->display,None,depth,ZPixmap,NULL,
                               ctx->shm_info,xsize,ysize);
   if (ctx->ximage == NULL) {
     fprintf(stderr,"XShm: error: XShmCreateImage\n");
     ctx->shm_use=0;
-    free(ctx->shm_info);
+    gl_free(ctx->shm_info);
     goto no_shm;
   }
   ctx->shm_info->shmid=shmget(IPC_PRIVATE,
@@ -195,7 +195,7 @@ static int create_ximage(TinyGLXContext *ctx,
   no_shm:
     ctx->ximage=XCreateImage(ctx->display, None, depth, ZPixmap, 0, 
                              NULL,xsize,ysize, 8, 0);
-    framebuffer=malloc(ysize * ctx->ximage->bytes_per_line);
+    framebuffer=gl_malloc(ysize * ctx->ximage->bytes_per_line);
     ctx->ximage->data = framebuffer;
     return 0;
 }
@@ -207,9 +207,9 @@ static void free_ximage(TinyGLXContext *ctx)
     XShmDetach(ctx->display, ctx->shm_info);
     XDestroyImage(ctx->ximage);
     shmdt(ctx->shm_info->shmaddr);
-    free(ctx->shm_info);
+    gl_free(ctx->shm_info);
   } else {
-    free(ctx->ximage->data);
+    gl_free(ctx->ximage->data);
     XDestroyImage(ctx->ximage);
   }
 }
@@ -246,7 +246,7 @@ int glX_resize_viewport(GLContext *c,int *xsize_ptr,int *ysize_ptr)
     return -1;
 
   /* resize the Z buffer */
-  if (ctx->visual_info.depth != 16) {
+  if (ctx->do_convert) {
     ZB_resize(c->zb,NULL,xsize,ysize);
   } else {
     ZB_resize(c->zb,ctx->ximage->data,xsize,ysize);
@@ -316,7 +316,7 @@ Bool glXMakeCurrent( Display *dpy, GLXDrawable drawable,
         xcolor.pixel = pixel[i];
         XStoreColor(ctx->display,ctx->cmap,&xcolor);
       }
-
+      ctx->do_convert = 1;
     } else {
         int mode,bpp;
         /* RGB 16/24/32 */
@@ -324,12 +324,15 @@ Bool glXMakeCurrent( Display *dpy, GLXDrawable drawable,
         switch(bpp) {
         case 24:
             mode = ZB_MODE_RGB24;
+            ctx->do_convert = (TGL_FEATURE_RENDER_BITS != 16);
             break;
         case 32:
             mode = ZB_MODE_RGBA;
+            ctx->do_convert = (TGL_FEATURE_RENDER_BITS != 16);
             break;
         default:
             mode = ZB_MODE_5R6G5B;
+            ctx->do_convert = (TGL_FEATURE_RENDER_BITS != 16);
             break;
         }
         zb=ZB_open(xsize,ysize,mode,0,NULL,NULL,NULL);
@@ -376,10 +379,12 @@ void glXSwapBuffers( Display *dpy, GLXDrawable drawable )
   ctx=(TinyGLXContext *)gl_context->opaque;
 
   /* for non 16 bits visuals, a conversion is required */
-  if (ctx->visual_info.depth != 16) {
+  
+
+  if (ctx->do_convert) {
     ZB_copyFrameBuffer(ctx->gl_context->zb,
                        ctx->ximage->data,
-                       ctx->xsize);
+                       ctx->ximage->bytes_per_line);
 
   }
 

@@ -35,7 +35,10 @@
 #define RGB_TO_PIXEL(r,g,b) \
   ((((r) >> 1) & 0x7c00) | (((g) >> 6) & 0x03e0) | ((b) >> 11))
 typedef unsigned short PIXEL;
+/* bytes per pixel */
 #define PSZB 2 
+/* bits per pixel = (1 << PSZH) */
+#define PSZSH 4 
 
 #elif TGL_FEATURE_RENDER_BITS == 16
 
@@ -44,13 +47,15 @@ typedef unsigned short PIXEL;
   (((r) & 0xF800) | (((g) >> 5) & 0x07E0) | ((b) >> 11))
 typedef unsigned short PIXEL;
 #define PSZB 2 
+#define PSZSH 4 
 
 #elif TGL_FEATURE_RENDER_BITS == 24
 
-#define RGB16_TO_PIXEL(r,g,b) \
+#define RGB_TO_PIXEL(r,g,b) \
   ((((r) << 8) & 0xff0000) | ((g) & 0xff00) | ((b) >> 8))
-typedef unsigned int *PIXEL;
+typedef unsigned char PIXEL;
 #define PSZB 3
+#define PSZSH 5
 
 #elif TGL_FEATURE_RENDER_BITS == 32
 
@@ -58,6 +63,7 @@ typedef unsigned int *PIXEL;
   ((((r) << 8) & 0xff0000) | ((g) & 0xff00) | ((b) >> 8))
 typedef unsigned int PIXEL;
 #define PSZB 4
+#define PSZSH 5
 
 #else
 
@@ -77,7 +83,7 @@ typedef struct {
     int nb_colors;
     unsigned char *dctable;
     int *ctable;
-    unsigned short *current_texture;
+    PIXEL *current_texture;
 } ZBuffer;
 
 typedef struct {
@@ -102,6 +108,7 @@ void ZB_close(ZBuffer *zb);
 void ZB_resize(ZBuffer *zb,void *frame_buffer,int xsize,int ysize);
 void ZB_clear(ZBuffer *zb,int clear_z,int z,
 	      int clear_color,int r,int g,int b);
+/* linesize is in BYTES */
 void ZB_copyFrameBuffer(ZBuffer *zb,void *buf,int linesize);
 
 /* zdither.c */
@@ -120,7 +127,7 @@ void ZB_line_z(ZBuffer * zb, ZBufferPoint * p1, ZBufferPoint * p2);
 
 /* ztriangle.c */
 
-void ZB_setTexture(ZBuffer *zb,unsigned short *texture);
+void ZB_setTexture(ZBuffer *zb, PIXEL *texture);
 
 void ZB_fillTriangleFlat(ZBuffer *zb,
 		 ZBufferPoint *p1,ZBufferPoint *p2,ZBufferPoint *p3);
@@ -138,6 +145,9 @@ void ZB_fillTriangleMappingPerspective(ZBuffer *zb,
 typedef void (*ZB_fillTriangleFunc)(ZBuffer  *,
 	    ZBufferPoint *,ZBufferPoint *,ZBufferPoint *);
 
+/* memory.c */
+void gl_free(void *p);
+void *gl_malloc(int size);
+void *gl_zalloc(int size);
 
 #endif /* _tgl_zbuffer_h_ */
-

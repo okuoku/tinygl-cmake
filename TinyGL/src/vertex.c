@@ -219,12 +219,12 @@ void glopVertex(GLContext * c, GLParam * p)
     if (n >= c->vertex_max) {
 	GLVertex *newarray;
 	c->vertex_max <<= 1;	/* just double size */
-	newarray = malloc(sizeof(GLVertex) * c->vertex_max);
+	newarray = gl_malloc(sizeof(GLVertex) * c->vertex_max);
 	if (!newarray) {
 	    gl_fatal_error("unable to allocate GLVertex array.\n");
 	}
 	memcpy(newarray, c->vertex, n * sizeof(GLVertex));
-	free(c->vertex);
+	gl_free(c->vertex);
 	c->vertex = newarray;
     }
     /* new vertex entry */
@@ -294,13 +294,18 @@ void glopVertex(GLContext * c, GLParam * p)
 	break;
     case GL_TRIANGLE_STRIP:
 	if (cnt >= 3) {
-	    int n1, n2, n3;
 	    if (n == 3)
 		n = 0;
-	    n1 = (n) % 3;
-	    n2 = (n + 1) % 3;
-	    n3 = (n + 2) % 3;
-	    gl_draw_triangle(c, &c->vertex[n1], &c->vertex[n2], &c->vertex[n3]);
+            /* needed to respect triangle orientation */
+            switch(cnt & 1) {
+            case 0:
+      		gl_draw_triangle(c,&c->vertex[2],&c->vertex[1],&c->vertex[0]);
+      		break;
+            default:
+            case 1:
+      		gl_draw_triangle(c,&c->vertex[0],&c->vertex[1],&c->vertex[2]);
+      		break;
+            }
 	}
 	break;
     case GL_TRIANGLE_FAN:

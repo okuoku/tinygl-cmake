@@ -59,14 +59,17 @@ endif
 # use TinyGL 
 GL_LIBS= -L../lib -lTinyGL 
 GL_INCLUDES= -I../include
+GL_DEPS= ../lib/libTinyGL.a
 
 # use Mesa
 #GL_LIBS= -lMesaGL 
 #GL_INCLUDES= 
+#GL_DEPS=
 
 # use OpenGL
 #GL_LIBS= -lGL 
 #GL_INCLUDES= 
+#GL_DEPS=
 
 ####################################################################
 # Compile and link control

@@ -12,4 +12,4 @@ install:
 
 
 tar:
-	( cd .. ; tar zcvf TinyGL-0.3.tar.gz TinyGL --exclude CVS --exclude TAGS )
+	( cd .. ; tar zcvf TinyGL-0.4.tar.gz TinyGL --exclude CVS --exclude TAGS )

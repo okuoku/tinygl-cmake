@@ -1,4 +1,4 @@
-TinyGL 0.3 (c) 1997,1998,1999,2000 Fabrice Bellard.
+TinyGL 0.4 (c) 1997-2002 Fabrice Bellard.
 
 General Description:
 --------------------
@@ -30,9 +30,9 @@ the LICENCE file).
 
 - Complete OpenGL selection mode handling for object picking.
 
-- 16 bit Z buffer. 16 bit RGB display. High speed dithering to
+- 16 bit Z buffer. 16/24/32 bit RGB rendering. High speed dithering to
 paletted 8 bits if needed. High speed conversion to 24 bit packed
-pixel or 32 bit RGBA.
+pixel or 32 bit RGBA if needed.
 
 - Fast Gouraud shadding optimized for 16 bit RGB.
 
@@ -147,4 +147,4 @@ have been lost on my hard disk !
 ------------------------------------------------------------------------------
 * OpenGL(R) is a registered trademark of Silicon Graphics, Inc.
 ------------------------------------------------------------------------------
-Fabrice Bellard (bellard@email.enst.fr - http://www-stud.enst.fr/~bellard).
+Fabrice Bellard.

@@ -1,4 +1,24 @@
-version 0.1
- - Initial revision
+version 0.2: Fabrice Bellard
+ - added 24/32 bpp support. Added some features.h ifdefs.
+ - fixed some error reporting cases in the examples
+ - endianness is deduced from the glibc (BYTE_ORDER macro)
 
+version 0.19: Peder Blekken 
+ - new files BeOS/* src/msghandling.*, src/arrays.*, src/oscontext.c
+     include/GL/oscontext.h src/features.h
+ - added support for BeOS, see README.BEOS
+ - added support for drawing convex polygons with unlimited # of vertices
+ - added support for GL_LIGHT_MODEL_TWO_SIDE
+ - added generic rotation code for glopRotate
+ - added support for opengl 1.1 arrays
+ - added support for glPolygonOffset, not implemented.
+ - added glGetFloatv, limited support.
+ - added some pnames for glGetIntegerv
+ - added some empty functions in include/GL/gl.h to compile VRMLView
+ - added GL_VERSION_1_1 define in include/GL/gl.h    
+ - fixed "bug" when context->gl_resize_viewport is not set.
+ - fixed bug in glBindTexture (didn't accept texture object 0)
+
+version 0.1:
+ - Initial revision, Fabrice Bellard
 

@@ -4,6 +4,8 @@
 #ifndef GL_H
 #define GL_H
 
+#define GL_VERSION_1_1 1
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -668,6 +670,7 @@ typedef unsigned short	GLushort;	/* 2-byte unsigned */
 typedef unsigned int	GLuint;		/* 4-byte unsigned */
 typedef float		GLfloat;	/* single precision float */
 typedef double		GLdouble;	/* double precision float */
+typedef int GLsizei;
 
 /* functions */
 
@@ -758,8 +761,8 @@ void glPopName(void);
 void glLoadName(unsigned int name);
 
 /* textures */
-void glGenTextures(int n,int *textures);
-void glDeleteTextures(int n,int *textures);
+void glGenTextures(int n, unsigned int *textures);
+void glDeleteTextures(int n, const unsigned int *textures);
 void glBindTexture(int target,int texture);
 void glTexImage2D( int target, int level, int components,
 		    int width, int height, int border,
@@ -784,7 +787,43 @@ void glLightModelfv(int pname,float *param);
 void glFlush(void);
 void glHint(int target,int mode);
 void glGetIntegerv(int pname,int *params);
+void glGetFloatv(int pname, float *v);
+void glFrontFace(int mode);
 
+/* opengl 1.2 arrays */
+void glEnableClientState(GLenum array);
+void glDisableClientState(GLenum array);
+void glArrayElement(GLint i);
+void glVertexPointer(GLint size, GLenum type, GLsizei stride, 
+                     const GLvoid *pointer);
+void glColorPointer(GLint size, GLenum type, GLsizei stride, 
+                     const GLvoid *pointer);
+void glNormalPointer(GLenum type, GLsizei stride, 
+                      const GLvoid *pointer);
+void glTexCoordPointer(GLint size, GLenum type, GLsizei stride, 
+                       const GLvoid *pointer);
+
+/* opengl 1.2 polygon offset */
+void glPolygonOffset(GLfloat factor, GLfloat units);
+
+/* not implemented, just added to compile  */
+  /*
+inline void glPointSize(float) {}
+inline void glLineWidth(float) {}
+inline void glDeleteLists(int, int) {}
+inline void glDepthFunc(int) {}
+inline void glBlendFunc(int, int) {}
+inline void glTexEnvf(int, int, int) {}
+inline void glOrtho(float,float,float,float,float,float){}
+inline void glVertex2i(int,int) {}
+inline void glDepthMask(int) {}
+inline void glFogi(int, int) {}
+inline void glFogfv(int, const float*) {}
+inline void glFogf(int, float) {}
+inline void glRasterPos2f(float, float) {}
+inline void glPolygonStipple(void*) {}
+inline void glTexParameterf(int, int, int) {};
+  */
 /* non compatible functions */
 
 void glDebug(int mode);

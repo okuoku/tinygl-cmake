@@ -1,3 +1,6 @@
+#ifndef _tgl_zgl_h_
+#define _tgl_zgl_h_
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <math.h>
@@ -5,6 +8,7 @@
 #include <GL/gl.h>
 #include "zbuffer.h"
 #include "zmath.h"
+#include "zfeatures.h"
 
 #define DEBUG
 /* #define NDEBUG */
@@ -17,7 +21,16 @@ enum {
 
 };
 
+/* initially # of allocated GLVertexes (will grow when necessary) */
 #define POLYGON_MAX_VERTEX 16
+
+/* Max # of specular light pow buffers */
+#define MAX_SPECULAR_BUFFERS 8
+/* # of entries in specular buffer */
+#define SPECULAR_BUFFER_SIZE 1024
+/* specular buffer granularity */
+#define SPECULAR_BUFFER_RESOLUTION 1024
+
 
 #define MAX_MODELVIEW_STACK_DEPTH  32
 #define MAX_PROJECTION_STACK_DEPTH 8
@@ -31,7 +44,16 @@ enum {
 #define MAX_DISPLAY_LISTS 1024
 #define OP_BUFFER_MAX_SIZE 512
 
+#define TGL_OFFSET_FILL    0x1
+#define TGL_OFFSET_LINE    0x2
+#define TGL_OFFSET_POINT   0x4
 
+typedef struct GLSpecBuf {
+  int shininess_i;
+  int last_used;
+  float buf[SPECULAR_BUFFER_SIZE+1];
+  struct GLSpecBuf *next;
+} GLSpecBuf;
 
 typedef struct GLLight {
   V4 ambient;
@@ -143,6 +165,7 @@ typedef struct GLContext {
   V4 ambient_light_model;
   int local_light_model;
   int lighting_enabled;
+  int light_model_two_side;
 
   /* materials */
   GLMaterial materials[2];
@@ -214,7 +237,33 @@ typedef struct GLContext {
   int in_begin;
   int begin_type;
   int vertex_n,vertex_cnt;
-  GLVertex vertex[POLYGON_MAX_VERTEX];
+  int vertex_max;
+  GLVertex *vertex;
+
+  /* opengl 1.1 arrays  */
+  float *vertex_array;
+  int vertex_array_size;
+  int vertex_array_stride;
+  float *normal_array;
+  int normal_array_stride;
+  float *color_array;
+  int color_array_size;
+  int color_array_stride;
+  float *texcoord_array;
+  int texcoord_array_size;
+  int texcoord_array_stride;
+  int client_states;
+  
+  /* opengl 1.1 polygon offset */
+  float offset_factor;
+  float offset_units;
+  int offset_states;
+  
+  /* specular buffer. could probably be shared between contexts, 
+    but that wouldn't be 100% thread safe */
+  GLSpecBuf *specbuf_first;
+  int specbuf_used_counter;
+  int specbuf_num_buffers;
 
   /* opaque structure for user's use */
   void *opaque;
@@ -243,6 +292,9 @@ void gl_draw_triangle_select(GLContext *c,
 
 /* matrix.c */
 void gl_print_matrix(const float *m);
+/*
+void glopLoadIdentity(GLContext *c,GLParam *p);
+void glopTranslate(GLContext *c,GLParam *p);*/
 
 /* light.c */
 void gl_add_select(GLContext *c,unsigned int zmin,unsigned int zmax);
@@ -265,6 +317,18 @@ GLContext *gl_get_context(void);
 
 void gl_fatal_error(char *format, ...);
 
+
+/* specular buffer "api" */
+GLSpecBuf *specbuf_get_buffer(GLContext *c, const int shininess_i, 
+                              const float shininess);
+
+
+
+#ifdef __BEOS__
+void dprintf(const char *, ...);
+
+#else /* !BEOS */
+
 #ifdef DEBUG
 
 #define dprintf(format, args...)  \
@@ -275,6 +339,7 @@ void gl_fatal_error(char *format, ...);
 #define dprintf(format, args...)
 
 #endif
+#endif /* !BEOS */
 
 /* glopXXX functions */
 
@@ -298,3 +363,5 @@ static inline int gl_clipcode(float x,float y,float z,float w1)
     ((z<-w)<<4) | 
     ((z>w)<<5) ;
 }
+
+#endif /* _tgl_zgl_h_ */

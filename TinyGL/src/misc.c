@@ -1,4 +1,5 @@
 #include "zgl.h"
+#include "msghandling.h"
 
 void glopViewport(GLContext *c,GLParam *p)
 {
@@ -19,7 +20,8 @@ void glopViewport(GLContext *c,GLParam *p)
     xsize_req=xmin+xsize;
     ysize_req=ymin+ysize;
 
-    if ( c->gl_resize_viewport(c,&xsize_req,&ysize_req) != 0) {
+    if (c->gl_resize_viewport && 
+        c->gl_resize_viewport(c,&xsize_req,&ysize_req) != 0) {
       gl_fatal_error("glViewport: error while resizing display");
     }
 
@@ -29,6 +31,8 @@ void glopViewport(GLContext *c,GLParam *p)
       gl_fatal_error("glViewport: size too small");
     }
 
+    tgl_trace("glViewport: %d %d %d %d\n",
+              xmin, ymin, xsize, ysize);
     c->viewport.xmin=xmin;
     c->viewport.ymin=ymin;
     c->viewport.xsize=xsize;
@@ -62,11 +66,25 @@ void glopEnableDisable(GLContext *c,GLParam *p)
   case GL_DEPTH_TEST:
     /* TODO: depth test cannot be disabled */
     break;
+  case GL_POLYGON_OFFSET_FILL:
+    if (v) c->offset_states |= TGL_OFFSET_FILL;
+    else c->offset_states &= ~TGL_OFFSET_FILL;
+    break; 
+  case GL_POLYGON_OFFSET_POINT:
+    if (v) c->offset_states |= TGL_OFFSET_POINT;
+    else c->offset_states &= ~TGL_OFFSET_POINT;
+    break; 
+  case GL_POLYGON_OFFSET_LINE:
+    if (v) c->offset_states |= TGL_OFFSET_LINE;
+    else c->offset_states &= ~TGL_OFFSET_LINE;
+    break; 
   default:
     if (code>=GL_LIGHT0 && code<GL_LIGHT0+MAX_LIGHTS) {
       gl_enable_disable_light(c,code - GL_LIGHT0, v);
     } else {
-      gl_fatal_error("glEnableDisable: 0x%X not supported",code);
+      /*
+      fprintf(stderr,"glEnableDisable: 0x%X not supported.\n",code);
+      */
     }
     break;
   }
@@ -119,4 +137,11 @@ void glopHint(GLContext *c,GLParam *p)
 
   /* do nothing */
 #endif
+}
+
+void 
+glopPolygonOffset(GLContext *c, GLParam *p)
+{
+  c->offset_factor = p[1].f;
+  c->offset_units = p[2].f;
 }

@@ -67,7 +67,7 @@ void glInitTextures(GLContext *c)
   c->current_texture=find_texture(c,0);
 }
 
-void glGenTextures(int n,int *textures)
+void glGenTextures(int n, unsigned int *textures)
 {
   GLContext *c=gl_get_context();
   int max,i;
@@ -88,7 +88,7 @@ void glGenTextures(int n,int *textures)
 }
 
 
-void glDeleteTextures(int n,int *textures)
+void glDeleteTextures(int n, const unsigned int *textures)
 {
   GLContext *c=gl_get_context();
   int i;
@@ -112,7 +112,7 @@ void glopBindTexture(GLContext *c,GLParam *p)
   int texture=p[2].i;
   GLTexture *t;
 
-  assert(texture > 0 && target == GL_TEXTURE_2D);
+  assert(target == GL_TEXTURE_2D && texture >= 0);
 
   t=find_texture(c,texture);
   if (t==NULL) {

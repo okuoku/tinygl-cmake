@@ -1,4 +1,5 @@
 #include "zgl.h"
+#include "msghandling.h"
 
 void glopMaterial(GLContext *c,GLParam *p)
 {
@@ -35,6 +36,7 @@ void glopMaterial(GLContext *c,GLParam *p)
     break;
   case GL_SHININESS:
     m->shininess=v[0];
+    m->shininess_i = (v[0]/128.0f)*SPECULAR_BUFFER_RESOLUTION;
     break;
   case GL_AMBIENT_AND_DIFFUSE:
     for(i=0;i<4;i++)
@@ -143,8 +145,13 @@ void glopLightModel(GLContext *c,GLParam *p)
   case GL_LIGHT_MODEL_LOCAL_VIEWER:
     c->local_light_model=(int)v[0];
     break;
+  case GL_LIGHT_MODEL_TWO_SIDE:
+    c->light_model_two_side = (int)v[0];
+    break;
   default:
-    assert(0);
+    tgl_warning("glopLightModel: illegal pname: 0x%x\n", pname);
+    //assert(0);
+    break;
   }
 }
 
@@ -180,6 +187,7 @@ void gl_shade_vertex(GLContext *c,GLVertex *v)
   GLLight *l;
   V3 n,s,d;
   float dist,tmp,att,dot,dot_spot,dot_spec;
+  int twoside = c->light_model_two_side;
 
   m=&c->materials[0];
 
@@ -218,10 +226,11 @@ void gl_shade_vertex(GLContext *c,GLVertex *v)
         d.Y*=tmp;
         d.Z*=tmp;
       }
-      att=1/(l->attenuation[0]+dist*(l->attenuation[1]+
+      att=1.0f/(l->attenuation[0]+dist*(l->attenuation[1]+
 				     dist*l->attenuation[2]));
     }
     dot=d.X*n.X+d.Y*n.Y+d.Z*n.Z;
+    if (twoside && dot < 0) dot = -dot;
     if (dot>0) {
       /* diffuse light */
       lR+=dot * l->diffuse.v[0] * m->diffuse.v[0];
@@ -233,6 +242,7 @@ void gl_shade_vertex(GLContext *c,GLVertex *v)
         dot_spot=-(d.X*l->norm_spot_direction.v[0]+
                    d.Y*l->norm_spot_direction.v[1]+
                    d.Z*l->norm_spot_direction.v[2]);
+        if (twoside && dot_spot < 0) dot_spot = -dot_spot;
         if (dot_spot < l->cos_spot_cutoff) {
           /* no contribution */
           continue;
@@ -261,14 +271,22 @@ void gl_shade_vertex(GLContext *c,GLVertex *v)
         s.Z=d.Z+1.0;
       }
       dot_spec=n.X*s.X+n.Y*s.Y+n.Z*s.Z;
+      if (twoside && dot_spec < 0) dot_spec = -dot_spec;
       if (dot_spec>0) {
+        GLSpecBuf *specbuf;
+        int idx;
         tmp=sqrt(s.X*s.X+s.Y*s.Y+s.Z*s.Z);
         if (tmp > 1E-3) {
           dot_spec=dot_spec / tmp;
         }
       
         /* TODO: optimize */
-        dot_spec=pow(dot_spec,m->shininess);
+        /* testing specular buffer code */
+        /* dot_spec= pow(dot_spec,m->shininess);*/
+        specbuf = specbuf_get_buffer(c, m->shininess_i, m->shininess);
+        idx = (int)(dot_spec*SPECULAR_BUFFER_SIZE);
+        if (idx > SPECULAR_BUFFER_SIZE) idx = SPECULAR_BUFFER_SIZE;
+        dot_spec = specbuf->buf[idx];
         lR+=dot_spec * l->specular.v[0] * m->specular.v[0];
         lG+=dot_spec * l->specular.v[1] * m->specular.v[1];
         lB+=dot_spec * l->specular.v[2] * m->specular.v[2];

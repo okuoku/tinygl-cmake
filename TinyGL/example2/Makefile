@@ -4,7 +4,7 @@ OBJS = glu.o mech.o
 all: $(PROG)
 
 clean:
-	rm -f *.o *~ $(PROG)
+	rm -f core *.o *~ $(PROG)
 
 $(PROG): $(OBJS) 
 	$(CC) $(LFLAGS) $(OBJS) -o $(PROG) $(GL_LIBS) $(X_LIBS) -lm

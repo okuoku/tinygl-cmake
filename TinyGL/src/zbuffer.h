@@ -1,7 +1,11 @@
+#ifndef _tgl_zbuffer_h_
+#define _tgl_zbuffer_h_
+
 /*
- * 8 bits Z buffer
+ * Z buffer
  */
 
+#include "zfeatures.h"
 
 #define ZB_Z_BITS 16
 
@@ -22,6 +26,8 @@
 /* rendering modes */
 #define ZB_MODE_5R6G5B  1  /* true color 16 bits */
 #define ZB_MODE_INDEX   2  /* color index 8 bits */
+#define ZB_MODE_RGBA    3  /* 32 bit rgba mode */
+#define ZB_MODE_RGB24   4  /* 24 bit rgb mode */
 #define ZB_NB_COLORS    225 /* number of colors for 8 bit display */
 
 typedef struct {
@@ -63,8 +69,7 @@ void ZB_close(ZBuffer *zb);
 void ZB_resize(ZBuffer *zb,void *frame_buffer,int xsize,int ysize);
 void ZB_clear(ZBuffer *zb,int clear_z,int z,
 	      int clear_color,int r,int g,int b);
-void ZB_copyFrameBuffer(ZBuffer *zb,void *buf,
-			int size_x,int size_y,int min_x,int min_y);
+void ZB_copyFrameBuffer(ZBuffer *zb,void *buf,int linesize);
 
 /* zdither.c */
 
@@ -72,7 +77,7 @@ void ZB_initDither(ZBuffer *zb,int nb_colors,
 		   unsigned char *color_indexes,int *color_table);
 void ZB_closeDither(ZBuffer *zb);
 void ZB_ditherFrameBuffer(ZBuffer *zb,unsigned char *dest,
-			  int xsize,int ysize,int xmin,int ymin);
+			  int linesize);
 
 /* zline.c */
 
@@ -99,4 +104,6 @@ void ZB_fillTriangleMappingPerspective(ZBuffer *zb,
 typedef void (*ZB_fillTriangleFunc)(ZBuffer  *,
 	    ZBufferPoint *,ZBufferPoint *,ZBufferPoint *);
 
+
+#endif /* _tgl_zbuffer_h_ */
 

@@ -234,7 +234,7 @@ void ZB_fillTriangleMappingPerspective(ZBuffer *zb,
 #define DRAW_LINE()				\
 {						\
   register unsigned short *pp,*pz;		\
-  register unsigned int s,t,s2,t2,z,zz;	\
+  register unsigned int s,t,z,zz;	\
   register int n,dsdx,dtdx;		\
   float sz,tz,fz,zinv; \
   n=(x2>>16)-x1;                             \

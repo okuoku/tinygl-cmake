@@ -37,6 +37,7 @@ void glopLoadMatrix(GLContext *c,GLParam *p)
 {
   M4 *m;
   int i;
+  
   GLParam *q;
 
   m=c->matrix_stack_ptr[c->matrix_mode];
@@ -63,10 +64,10 @@ void glopLoadIdentity(GLContext *c,GLParam *p)
 
 void glopMultMatrix(GLContext *c,GLParam *p)
 {
-  GLParam *q;
   M4 m;
   int i;
 
+  GLParam *q;
   q=p+1;
 
   for(i=0;i<4;i++) {
@@ -111,36 +112,66 @@ void glopPopMatrix(GLContext *c,GLParam *p)
 void glopRotate(GLContext *c,GLParam *p)
 {
   M4 m;
-  V3 dir;
+  float u[3];
   float angle;
   int dir_code;
 
   angle = p[1].f * M_PI / 180.0;
-  dir.X=p[2].f;
-  dir.Y=p[3].f;
-  dir.Z=p[4].f;
+  u[0]=p[2].f;
+  u[1]=p[3].f;
+  u[2]=p[4].f;
 
   /* simple case detection */
-  dir_code = ((dir.X != 0)<<2) | ((dir.Y != 0)<<1) | (dir.Z != 0);
+  dir_code = ((u[0] != 0)<<2) | ((u[1] != 0)<<1) | (u[2] != 0);
 
   switch(dir_code) {
   case 0:
     gl_M4_Id(&m);
     break;
   case 4:
-    if (dir.X < 0) angle=-angle;
+    if (u[0] < 0) angle=-angle;
     gl_M4_Rotate(&m,angle,0);
     break;
   case 2:
-    if (dir.Y < 0) angle=-angle;
+    if (u[1] < 0) angle=-angle;
     gl_M4_Rotate(&m,angle,1);
     break;
   case 1:
-    if (dir.Z < 0) angle=-angle;
+    if (u[2] < 0) angle=-angle;
     gl_M4_Rotate(&m,angle,2);
     break;
   default:
-    gl_fatal_error("glRotate: general rotation not implemented");
+    {
+      float cost, sint;
+
+      /* normalize vector */
+      float len = u[0]*u[0]+u[1]*u[1]+u[2]*u[2];
+      if (len == 0.0f) return;
+      len = 1.0f / sqrt(len);
+      u[0] *= len;
+      u[1] *= len;
+      u[2] *= len;
+
+      /* store cos and sin values */
+      cost=cos(angle);
+      sint=sin(angle);
+
+      /* fill in the values */
+      m.m[3][0]=m.m[3][1]=m.m[3][2]=
+        m.m[0][3]=m.m[1][3]=m.m[2][3]=0.0f;
+      m.m[3][3]=1.0f;
+
+      /* do the math */
+      m.m[0][0]=u[0]*u[0]+cost*(1-u[0]*u[0]);
+      m.m[1][0]=u[0]*u[1]*(1-cost)-u[2]*sint;
+      m.m[2][0]=u[2]*u[0]*(1-cost)+u[1]*sint;
+      m.m[0][1]=u[0]*u[1]*(1-cost)+u[2]*sint;
+      m.m[1][1]=u[1]*u[1]+cost*(1-u[1]*u[1]);
+      m.m[2][1]=u[1]*u[2]*(1-cost)-u[0]*sint;
+      m.m[0][2]=u[2]*u[0]*(1-cost)-u[1]*sint;
+      m.m[1][2]=u[1]*u[2]*(1-cost)+u[0]*sint;
+      m.m[2][2]=u[2]*u[2]+cost*(1-u[2]*u[2]);
+    }
   }
 
   gl_M4_MulLeft(c->matrix_stack_ptr[c->matrix_mode],&m);
@@ -187,15 +218,15 @@ void glopFrustum(GLContext *c,GLParam *p)
   float bottom=p[3].f;
   float top=p[4].f;
   float near=p[5].f;
-  float far=p[6].f;
+  float farp=p[6].f;
   float x,y,A,B,C,D;
 
   x = (2.0*near) / (right-left);
   y = (2.0*near) / (top-bottom);
   A = (right+left) / (right-left);
   B = (top+bottom) / (top-bottom);
-  C = -(far+near) / ( far-near);
-  D = -(2.0*far*near) / (far-near);
+  C = -(farp+near) / ( farp-near);
+  D = -(2.0*farp*near) / (farp-near);
 
   r=&m.m[0][0];
   r[0]= x; r[1]=0; r[2]=A; r[3]=0;

@@ -48,6 +48,8 @@ void gl_M4_MulLeft(M4 *c,M4 *b)
   float s;
   M4 a;
 
+  /*memcpy(&a, c, 16*sizeof(float));
+  */
   a=*c;
 
   for(i=0;i<4;i++)
@@ -196,7 +198,8 @@ int Matrix_Inv(float *r,float *m,int n)
 void gl_M4_Inv(M4 *a,M4 *b)
 {
   M4 tmp;
-  tmp=*b;
+  memcpy(&tmp, b, 16*sizeof(float));
+  /*tmp=*b;*/
   Matrix_Inv(&a->m[0][0],&tmp.m[0][0],4);
 }
 

@@ -1,5 +1,5 @@
 #include "zgl.h"
-
+#include <stdio.h>
 /* glVertex */
 
 void glVertex4f(float x,float y,float z,float w)
@@ -60,6 +60,18 @@ void glColor4f(float r,float g,float b,float a)
   p[2].f=g;
   p[3].f=b;
   p[4].f=a;
+
+  gl_add_op(p);
+}
+
+void glColor4fv(float *v)
+{
+  GLParam p[5];
+  p[0].op=OP_Color;
+  p[1].f=v[0];
+  p[2].f=v[1];
+  p[3].f=v[2];
+  p[4].f=v[3];
 
   gl_add_op(p);
 }
@@ -327,7 +339,7 @@ void glViewport(int x,int y,int width,int height)
 }
 
 void glFrustum(double left,double right,double bottom,double top,
-               double near,double far)
+               double near,double farv)
 {
   GLParam p[7];
 
@@ -337,7 +349,7 @@ void glFrustum(double left,double right,double bottom,double top,
   p[3].f=bottom;
   p[4].f=top;
   p[5].f=near;
-  p[6].f=far;
+  p[6].f=farv;
 
   gl_add_op(p);
 }
@@ -594,6 +606,14 @@ void glLoadName(unsigned int name)
   gl_add_op(p);
 }
 
+void 
+glPolygonOffset(GLfloat factor, GLfloat units)
+{
+  GLParam p[3];
+  p[0].op = OP_PolygonOffset;
+  p[1].f = factor;
+  p[2].f = units;
+}
 
 /* Special Functions */
 

@@ -1,4 +1,7 @@
 /* simple glx driver for TinyGL */
+
+#ifndef __BEOS__
+
 #include <GL/glx.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
@@ -8,29 +11,33 @@
 
 Bool glXQueryExtension( Display *dpy, int *errorb, int *event )
 {
-  return True;
+    return True;
 }
 
 
 XVisualInfo* glXChooseVisual( Display *dpy, int screen,
                               int *attribList )
 {
-	 XVisualInfo vinfo;
-   int n;
-
-  /* the attribList is ignored : we consider only RGBA rendering (no
-     direct color) */
-
-  if (XMatchVisualInfo (dpy, screen, 16, TrueColor, &vinfo)) {
-    /* 16 bit visual */
-  } else if (XMatchVisualInfo (dpy, screen, 8, PseudoColor, &vinfo)) {
-    /* 8 bit visual */
-  } else {
-    /* no suitable visual */
-    return NULL;
-  }
-
-  return XGetVisualInfo(dpy,VisualAllMask,&vinfo,&n);
+    XVisualInfo vinfo;
+    int n;
+    
+    /* the attribList is ignored : we consider only RGBA rendering (no
+       direct color) */
+    
+    if (XMatchVisualInfo (dpy, screen, 16, TrueColor, &vinfo)) {
+        /* 16 bit visual (fastest with TinyGL) */
+    } else if (XMatchVisualInfo (dpy, screen, 24, TrueColor, &vinfo)) {
+        /* 24 bit visual */
+    } else if (XMatchVisualInfo (dpy, screen, 32, TrueColor, &vinfo)) {
+        /* 32 bit visual */
+    } else if (XMatchVisualInfo (dpy, screen, 8, PseudoColor, &vinfo)) {
+        /* 8 bit visual */
+    } else {
+        /* no suitable visual */
+        return NULL;
+    }
+    
+    return XGetVisualInfo(dpy,VisualAllMask,&vinfo,&n);
 }
 
 
@@ -68,6 +75,29 @@ static int glxHandleXError(Display *dpy,XErrorEvent *event)
   return 0;
 }
 
+static int bits_per_pixel(Display *dpy,XVisualInfo *visinfo)
+{
+   XImage *img;
+   int bpp;
+   char *data;
+
+   data = malloc(8);
+   if (data == NULL) 
+       return visinfo->depth;
+
+   img = XCreateImage(dpy, visinfo->visual, visinfo->depth,
+                      ZPixmap, 0, data, 1, 1, 32, 0);
+   if (img == NULL) {
+       free(data);
+       return visinfo->depth;
+   }
+   bpp = img->bits_per_pixel;
+   free(data);
+   img->data = NULL;
+   XDestroyImage(img);
+   return bpp;
+}
+
 static int create_ximage(TinyGLXContext *ctx,
                          int xsize,int ysize,int depth)
 {
@@ -93,7 +123,7 @@ static int create_ximage(TinyGLXContext *ctx,
     goto no_shm;
   }
   ctx->shm_info->shmid=shmget(IPC_PRIVATE,
-                              xsize*ysize*(depth/8),
+                              ctx->ysize*ctx->ximage->bytes_per_line,
                               IPC_CREAT | 0777);
   if (ctx->shm_info->shmid < 0) {
     fprintf(stderr,"XShm: error: shmget\n");
@@ -150,9 +180,10 @@ static int create_ximage(TinyGLXContext *ctx,
   return 0;
 
   no_shm:
-    framebuffer=malloc(xsize*ysize*(depth/8));
     ctx->ximage=XCreateImage(ctx->display, None, depth, ZPixmap, 0, 
-                             framebuffer,xsize,ysize, 8, 0);
+                             NULL,xsize,ysize, 8, 0);
+    framebuffer=malloc(ysize * ctx->ximage->bytes_per_line);
+    ctx->ximage->data = framebuffer;
     return 0;
 }
 
@@ -184,7 +215,7 @@ int glX_resize_viewport(GLContext *c,int *xsize_ptr,int *ysize_ptr)
   ysize=*ysize_ptr;
 
   /* we ensure that xsize and ysize are multiples of 2 for the zbuffer. 
-     TODO: suppress it ! */
+     TODO: find a better solution */
   xsize&=~3;
   ysize&=~3;
 
@@ -202,7 +233,7 @@ int glX_resize_viewport(GLContext *c,int *xsize_ptr,int *ysize_ptr)
     return -1;
 
   /* resize the Z buffer */
-  if (ctx->visual_info.depth == 8) {
+  if (ctx->visual_info.depth != 16) {
     ZB_resize(c->zb,NULL,xsize,ysize);
   } else {
     ZB_resize(c->zb,ctx->ximage->data,xsize,ysize);
@@ -274,13 +305,25 @@ Bool glXMakeCurrent( Display *dpy, GLXDrawable drawable,
       }
 
     } else {
-      /* RGB 16 */
-      
-      zb=ZB_open(xsize,ysize,ZB_MODE_5R6G5B,0,NULL,NULL,NULL);
-      if (zb == NULL) {
-        fprintf(stderr, "Error while initializing Z buffer\n");
-        exit(1);
-      }
+        int mode,bpp;
+        /* RGB 16/24/32 */
+        bpp = bits_per_pixel(ctx->display,&ctx->visual_info);
+        switch(bpp) {
+        case 24:
+            mode = ZB_MODE_RGB24;
+            break;
+        case 32:
+            mode = ZB_MODE_RGBA;
+            break;
+        default:
+            mode = ZB_MODE_5R6G5B;
+            break;
+        }
+        zb=ZB_open(xsize,ysize,mode,0,NULL,NULL,NULL);
+        if (zb == NULL) {
+            fprintf(stderr, "Error while initializing Z buffer\n");
+            exit(1);
+        }
     }
 
     /* create a gc */
@@ -311,11 +354,11 @@ void glXSwapBuffers( Display *dpy, GLXDrawable drawable )
   gl_context=gl_get_context();
   ctx=(TinyGLXContext *)gl_context->opaque;
 
-  /* 8 bit dithering if needed */
-  if (ctx->visual_info.depth == 8) {
+  /* for non 16 bits visuals, a conversion is required */
+  if (ctx->visual_info.depth != 16) {
     ZB_copyFrameBuffer(ctx->gl_context->zb,
                        ctx->ximage->data,
-                       ctx->xsize,ctx->ysize,0,0);
+                       ctx->xsize);
 
   }
 
@@ -339,4 +382,6 @@ void glXWaitGL( void )
 void glXWaitX( void )
 {
 }
+
+#endif /* !__BEOS__ */
 

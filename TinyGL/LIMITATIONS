@@ -9,7 +9,8 @@ must not be used.
 - The following flags are handled:
 
 GL_CULL_FACE, GL_LIGHTING, GL_COLOR_MATERIAL, GL_TEXTURE_2D, GL_NORMALIZE,
-GL_LIGHTx
+GL_LIGHTx, GL_POLYGON_OFFSET_FILL, GL_POLYGON_OFFSET_POINT,
+GL_POLYGON_OFFSET_LINE
 
 
 - GL_DEPTH_TEST is accepted, but it *cannot* be disabled. The
@@ -28,8 +29,6 @@ OK.
 OK.
 
 ************ glBegin
-
-- GL_POLYGON not handled
 
 No tests are performed to prevent some functions of being executed
 between glBegin/glEnd.
@@ -68,12 +67,11 @@ in TinyGL.
 
 - The prototypes with doubles are not implemented.
 
-- glRotatef only handles X,Y, or Z axis.
-
 ************ glViewport
 
 GlViewport calls a function pointers to tell glx (or another display
-system) to resize the Z buffer and the ximage.
+system) to resize the Z buffer and the ximage. Made optional in
+version 0.2.
 
 ************ glGenLists / glIsList / glNewList / glEndList / glCallList
 
@@ -144,8 +142,27 @@ Ignored.
 
 ************ glGetIntegerv
 
-- only GL_VIEWPORT is handled
+- only GL_VIEWPORT, GL_MAX_MODELVIEW_STACK_DEPTH, 
+GL_MAX_PROJECTION_STACK_DEPTH, GL_MAX_LIGHTS, GL_MAX_TEXTURE_SIZE,
+GL_MAX_TEXTURE_STACK_DEPTH
 
+************ glGetIntegerv
+
+- only GL_TEXTURE_MATRIX, GL_PROJECTION_MATRIX, GL_MODELVIEW_MATRIX,
+GL_LINE_WIDTH, GL_LINE_WIDTH_RANGE, GL_POINT_SIZE, GL_POINT_SIZE_RANGE
+
+************ glPolygonOffset
+
+- only API implemented.
+
+************ glEnableClientState, glDisableClientState,
+             
+- No support for GL_INDEX_ARRAY_POINTER or GL_EDGE_FLAG_ARRAY_POINTER
+
+************ glVertexPointer, glNormalPointer, 
+             glColorPointer, glTexureCoordPointer
+
+- OK
 
 ------------------------------------------------------------------------------
 
@@ -182,3 +199,7 @@ OK.
 ************ glXWaitGL / glXWaitX
 
 Ignored.
+
+
+See README.BEOS for BeOS limitations.
+

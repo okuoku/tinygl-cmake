@@ -206,6 +206,19 @@ void glopVertex(GLContext *c,GLParam *p)
   cnt++;
   c->vertex_cnt=cnt;
 
+  /* quick fix to avoid crashes on large polygons */
+  if (n >= c->vertex_max) {
+    GLVertex *newarray;
+    c->vertex_max <<= 1; /* just double size */
+    newarray = malloc(sizeof(GLVertex)*c->vertex_max);
+    if (!newarray) {
+      gl_fatal_error("unable to allocate GLVertex array.\n");
+    }
+    memcpy(newarray, c->vertex, n*sizeof(GLVertex));
+    free(c->vertex);
+    c->vertex = newarray;
+  }
+
   /* new vertex entry */
   v=&c->vertex[n];
   n++;
@@ -308,8 +321,10 @@ void glopVertex(GLContext *c,GLParam *p)
       n=2;
     }
     break;
+  case GL_POLYGON:
+    break;
   default:
-    gl_fatal_error("glBegin: type %d not handled\n",c->begin_type);
+    gl_fatal_error("glBegin: type %x not handled\n",c->begin_type);
   }
   
   c->vertex_n=n;
@@ -319,14 +334,18 @@ void glopEnd(GLContext *c,GLParam *param)
 {
   assert( c->in_begin == 1);
 
-  switch(c->begin_type) {
-   case GL_LINE_LOOP:
+  if (c->begin_type == GL_LINE_LOOP) {
     if (c->vertex_cnt>=3) {
       gl_draw_line(c,&c->vertex[0],&c->vertex[2]);
     }
-    break;
   }
-  
+  else if (c->begin_type == GL_POLYGON) {
+    int i = c->vertex_cnt;
+    while (i >= 3) {
+      i--;
+      gl_draw_triangle(c, &c->vertex[i], &c->vertex[0], &c->vertex[i-1]);
+    }
+  } 
   c->in_begin=0;
 }
 

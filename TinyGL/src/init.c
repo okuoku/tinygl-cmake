@@ -39,6 +39,10 @@ void glInit(void *zbuffer1)
 
   c->zb=zbuffer;
 
+  /* allocate GLVertex array */
+  c->vertex_max = POLYGON_MAX_VERTEX;
+  c->vertex = malloc(POLYGON_MAX_VERTEX*sizeof(GLVertex));
+  
   /* viewport */
   v=&c->viewport;
   v->xmin=0;
@@ -79,6 +83,7 @@ void glInit(void *zbuffer1)
   c->ambient_light_model=gl_V4_New(0.2,0.2,0.2,1);
   c->local_light_model=0;
   c->lighting_enabled=0;
+  c->light_model_two_side = 0;
 
   /* default materials */
   for(i=0;i<2;i++) {
@@ -155,6 +160,19 @@ void glInit(void *zbuffer1)
 
   c->matrix_model_projection_updated=1;
 
+  /* opengl 1.1 arrays */
+  c->client_states = 0;
+  
+  /* opengl 1.1 polygon offset */
+  c->offset_states = 0;
+  
+  /* clear the resize callback function pointer */
+  c->gl_resize_viewport = NULL;
+  
+  /* specular buffer */
+  c->specbuf_first = NULL;
+  c->specbuf_used_counter = 0;
+  c->specbuf_num_buffers = 0;
 }
 
 void glClose(void)

@@ -56,4 +56,16 @@ ADD_OP(Hint,2,"%C %C")
 ADD_OP(EndList,0,"")
 ADD_OP(NextBuffer,1,"%p")
 
+/* opengl 1.1 arrays */
+ADD_OP(ArrayElement, 1, "%d")
+ADD_OP(EnableClientState, 1, "%C")
+ADD_OP(DisableClientState, 1, "%C")
+ADD_OP(VertexPointer, 4, "%d %C %d %p")
+ADD_OP(ColorPointer, 4, "%d %C %d %p")
+ADD_OP(NormalPointer, 3, "%C %d %p")
+ADD_OP(TexCoordPointer, 4, "%d %C %d %p")
+
+/* opengl 1.1 polygon offset */
+ADD_OP(PolygonOffset, 2, "%f %f")
+
 #undef ADD_OP

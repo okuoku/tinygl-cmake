@@ -7,6 +7,7 @@
 
 #include <math.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 
 #include <X11/Xlib.h>
@@ -198,10 +199,18 @@ int main(int argc, char **argv) {
   
   /* get a connection */
   dpy = XOpenDisplay(NULL);
+  if (dpy == NULL) {
+      fprintf(stderr,"Could not open X display\n");
+      exit(1);
+  }
   
   /* get an appropriate visual */
   vi = glXChooseVisual(dpy, DefaultScreen(dpy), attributeList);
-
+  if (vi == NULL) {
+      fprintf(stderr, "No suitable visual for glx\n");
+      exit(1);
+  }
+      
   /* create a GLX context */
   cx = glXCreateContext(dpy, vi, 0, GL_TRUE);
 

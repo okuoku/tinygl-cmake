@@ -1,4 +1,4 @@
-TinyGL 0.1 (c) 1997,1998 Fabrice Bellard.
+TinyGL 0.2 (c) 1997,1998,1999 Fabrice Bellard.
 
 General Description:
 --------------------
@@ -22,12 +22,15 @@ the LICENCE file).
 
 - Subset of GLX for easy testing with X Window.
 
+- Subset of BGLView under BeOS.
+
 - OpenGL like lightening.
 
 - Complete OpenGL selection mode handling for object picking.
 
 - 16 bit Z buffer. 16 bit RGB display. High speed dithering to
-paletted 8 bits if needed.
+paletted 8 bits if needed. High speed conversion to 24 bit packed
+pixel or 32 bit RGBA.
 
 - Fast Gouraud shadding optimized for 16 bit RGB.
 
@@ -36,9 +39,11 @@ texture objects.
 
 - 32 bit float only arithmetic.
 
-- Very small: compiled code size of about 40 kB on x86.
+- Very small: compiled code size of about 40 kB on x86. The file
+  src/zfeatures.h can be used to remove some unused features from
+  TinyGL.
 
-- C sources for GCC on 32 bit architectures. It has been tested
+- C sources for GCC on 32/64 bit architectures. It has been tested
 succesfully on x86-Linux and sparc-Solaris.
 
 Examples:

@@ -6,7 +6,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "zbuffer.h"
+#include <assert.h>
 
+#ifdef TGL_FEATURE_8_BITS
 
 #define _R	5
 #define _G	9
@@ -96,25 +98,26 @@ int ZDither_lookupColor(int r,int g,int b)
   *(unsigned short *)(dest+(a))=c; 	\
 }
 
+/* NOTE: all the memory access are 16 bit aligned, so if buf or
+   linesize are not multiple of 2, it cannot work efficiently (or
+   hang!) */
+
 void ZB_ditherFrameBuffer(ZBuffer *zb,unsigned char *buf,
-			  int xsize,int ysize,int xmin,int ymin)
+			  int linesize)
 {
   int xk,yk,x,y,c1,c2;
   unsigned char *dest1;
   unsigned short *pp1;
   int r_d,g_d,b_d;
   unsigned char *ctable=zb->dctable;
-  register char *dest;
+  register unsigned char *dest;
   register unsigned short *pp;
 
-  if ( (xsize & 1) != 0 || (xmin & 1) != 0) {
-    fprintf(stderr,"ZB_ditherFrameBuffer: bad size %d %d\n",xsize,xmin);
-    exit(1);
-  }
+  assert( ((long)buf & 1) == 0 && (linesize & 1) == 0);
 
   for(yk=0;yk<4;yk++) {
     for(xk=0;xk<4;xk+=2) {
-#ifdef BIG_ENDIAN
+#if BYTE_ORDER == BIG_ENDIAN
       c1=kernel8[yk*4+xk+1];
       c2=kernel8[yk*4+xk];
 #else
@@ -130,7 +133,7 @@ void ZB_ditherFrameBuffer(ZBuffer *zb,unsigned char *buf,
       b_d|=((c2 >> 9) & 0x001F) << 16;
       g_d=b_d | g_d;
 
-      dest1=buf + ((yk+ymin) * xsize) + (xk+xmin);
+      dest1=buf + (yk * linesize) + xk;
       pp1=zb->pbuf + (yk * zb->xsize) + xk;
       
       for(y=yk;y<zb->ysize;y+=4) {
@@ -146,9 +149,11 @@ void ZB_ditherFrameBuffer(ZBuffer *zb,unsigned char *buf,
 	  pp+=16;
 	  dest+=16;
 	}
-	dest1+=xsize*4;
+	dest1+=linesize*4;
 	pp1+=zb->xsize*4;
       }
     }
   }
 }
+
+#endif

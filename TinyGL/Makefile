@@ -5,12 +5,13 @@ CC= gcc
 CFLAGS= -g -Wall -O2
 LFLAGS=
 
+# for BeOS PPC
+#CC= mwcc
+#CFLAGS= -I. -i-
+#LFLAGS=
+
 #####################################################################
 # TinyGL configuration 
-
-# big endian computer (i.e. sparc, mips, ppc) . The default is little
-# endian (x86, alpha)
-#OPT_CFLAGS= -DBIG_ENDIAN
 
 #####################################################################
 # X11 configuration (for the examples only)
@@ -37,10 +38,17 @@ GL_INCLUDES= -I../include
 #GL_LIBS= -lGL 
 #GL_INCLUDES= 
 
+####################################################################
+# Compile and link control
+
+# UNIX systems
+DIRS= src example1 example2
+
+# BeOS
+# DIRS= src BeOS
+
 #####################################################################
 # Do not modify after this
-
-DIRS= src example1 example2
 
 all:
 	( for f in $(DIRS); do ( cd $$f ; \
@@ -48,7 +56,7 @@ all:
        X_LIBS='$(X_LIBS)' X_INCLUDES='$(X_INCLUDES)' \
 	     CC='$(CC)' CFLAGS='$(CFLAGS) $(OPT_CFLAGS)' LFLAGS='$(LFLAGS)' \
        all \
-  ) done )
+  ) || exit 1 ; done )
 
 clean:
 	rm -f *~ lib/libTinyGL.a include/GL/*~

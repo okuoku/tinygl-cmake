@@ -1,0 +1,11 @@
+Installation:
+
+- Edit the top level Makefile and change what is needed. The only
+critical configuration option for TinyGL is the endianness of your
+platform. The other options are required to compile the examples. You
+can link the examples with either OpenGL, Mesa or TinyGL.
+
+- Type 'make'. The library 'libTinyGL.a' is copied into './lib'. The
+examples are build in './example1' and './example2'. Only the
+directories './lib' and './include' are needed to use TinyGL from
+another program.

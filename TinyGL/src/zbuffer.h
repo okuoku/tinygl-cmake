@@ -23,25 +23,61 @@
 #define ZB_POINT_BLUE_MIN ( (1<<10) )
 #define ZB_POINT_BLUE_MAX ( (1<<16)-(1<<10) )
 
-/* rendering modes */
+/* display modes */
 #define ZB_MODE_5R6G5B  1  /* true color 16 bits */
 #define ZB_MODE_INDEX   2  /* color index 8 bits */
 #define ZB_MODE_RGBA    3  /* 32 bit rgba mode */
 #define ZB_MODE_RGB24   4  /* 24 bit rgb mode */
 #define ZB_NB_COLORS    225 /* number of colors for 8 bit display */
 
-typedef struct {
-  int xsize,ysize;
-  int mode;
-  
-  unsigned short *zbuf;
-  unsigned short *pbuf;
-  int frame_buffer_allocated;
+#if TGL_FEATURE_RENDER_BITS == 15
 
-  int nb_colors;
-  unsigned char *dctable;
-  int *ctable;
-  unsigned short *current_texture;
+#define RGB_TO_PIXEL(r,g,b) \
+  ((((r) >> 1) & 0x7c00) | (((g) >> 6) & 0x03e0) | ((b) >> 11))
+typedef unsigned short PIXEL;
+#define PSZB 2 
+
+#elif TGL_FEATURE_RENDER_BITS == 16
+
+/* 16 bit mode */
+#define RGB_TO_PIXEL(r,g,b) \
+  (((r) & 0xF800) | (((g) >> 5) & 0x07E0) | ((b) >> 11))
+typedef unsigned short PIXEL;
+#define PSZB 2 
+
+#elif TGL_FEATURE_RENDER_BITS == 24
+
+#define RGB16_TO_PIXEL(r,g,b) \
+  ((((r) << 8) & 0xff0000) | ((g) & 0xff00) | ((b) >> 8))
+typedef unsigned int *PIXEL;
+#define PSZB 3
+
+#elif TGL_FEATURE_RENDER_BITS == 32
+
+#define RGB_TO_PIXEL(r,g,b) \
+  ((((r) << 8) & 0xff0000) | ((g) & 0xff00) | ((b) >> 8))
+typedef unsigned int PIXEL;
+#define PSZB 4
+
+#else
+
+#error Incorrect number of bits per pixel
+
+#endif
+
+typedef struct {
+    int xsize,ysize;
+    int linesize; /* line size, in bytes */
+    int mode;
+    
+    unsigned short *zbuf;
+    PIXEL *pbuf;
+    int frame_buffer_allocated;
+    
+    int nb_colors;
+    unsigned char *dctable;
+    int *ctable;
+    unsigned short *current_texture;
 } ZBuffer;
 
 typedef struct {
@@ -51,9 +87,6 @@ typedef struct {
   
   float sz,tz;   /* temporary coordinates for mapping */
 } ZBufferPoint;
-
-#define RGB_TO_5R6G5B(r,g,b) \
-  ((r & 0xF800) | ((g >> 5) & 0x07E0) | (b >> 11))
 
 /* zbuffer.c */
 
@@ -83,6 +116,7 @@ void ZB_ditherFrameBuffer(ZBuffer *zb,unsigned char *dest,
 
 void ZB_plot(ZBuffer *zb,ZBufferPoint *p);
 void ZB_line(ZBuffer *zb,ZBufferPoint *p1,ZBufferPoint *p2);
+void ZB_line_z(ZBuffer * zb, ZBufferPoint * p1, ZBufferPoint * p2);
 
 /* ztriangle.c */
 

@@ -12,7 +12,7 @@ void ZB_fillTriangleFlat(ZBuffer *zb,
 
 #define DRAW_INIT()				\
 {						\
-  color=RGB_TO_5R6G5B(p2->r,p2->g,p2->b);	\
+  color=RGB_TO_PIXEL(p2->r,p2->g,p2->b);	\
 }
   
 #define PUT_PIXEL(_a)				\
@@ -27,7 +27,8 @@ void ZB_fillTriangleFlat(ZBuffer *zb,
 
 #define DRAW_LINE()				\
 {						\
-  register unsigned short *pp,*pz;		\
+  register unsigned short *pz;		\
+  register PIXEL *pp;		\
   register unsigned int z,zz;			\
   register int n;			   \
   n=(x2 >> 16) - x1;	   	   \

@@ -10,19 +10,16 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/keysym.h>
-
 #include <GL/glx.h> 
 #include <GL/gl.h> 
+#include "ui.h"
 
 static GLuint TexObj[2];
 static GLfloat Angle = 0.0f;
 
 static int cnt=0,v=0;
 
-static void 
+void 
 draw(void)
 {
   glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
@@ -71,11 +68,12 @@ draw(void)
 
   glPopMatrix();
 
+  tkSwapBuffers();
 }
 
 
 /* new window size or exposure */
-static void 
+void 
 reshape(int width, int height)
 {
   glViewport(0, 0, (GLint) width, (GLint) height);
@@ -147,7 +145,7 @@ void bind_texture(int texobj,int image)
 
 
 
-static void 
+void 
 init(void)
 {
   glEnable(GL_DEPTH_TEST);
@@ -163,7 +161,7 @@ init(void)
   
 }
 
-static void 
+void 
 idle(void)
 {
   
@@ -173,100 +171,23 @@ idle(void)
     cnt=0;
     v=!v;
   }
+  draw();
 }
 
-static int attributeList[] = { GLX_RGBA, GLX_DOUBLEBUFFER, None };
-
-static Bool WaitForNotify(Display *d, XEvent *e, char *arg) 
+/* change view angle, exit upon ESC */
+GLenum key(int k, GLenum mask)
 {
-  return (e->type == MapNotify) && (e->xmap.window == (Window)arg); 
+   switch (k) {
+      case 'q':
+      case KEY_ESCAPE:
+          exit(0);
+   }
+   return GL_FALSE;
 }
 
-
-int main(int argc, char **argv) {
-  Display *dpy;
-  XVisualInfo *vi;
-  Colormap cmap;
-  XSetWindowAttributes swa;
-  Window win;
-  GLXContext cx;
-  XEvent event;
-
-  char buf[80];
-  XEvent xev;
-  KeySym keysym;
-  XComposeStatus status;
-  
-  /* get a connection */
-  dpy = XOpenDisplay(NULL);
-  if (dpy == NULL) {
-      fprintf(stderr,"Could not open X display\n");
-      exit(1);
-  }
-  
-  /* get an appropriate visual */
-  vi = glXChooseVisual(dpy, DefaultScreen(dpy), attributeList);
-  if (vi == NULL) {
-      fprintf(stderr, "No suitable visual for glx\n");
-      exit(1);
-  }
-      
-  /* create a GLX context */
-  cx = glXCreateContext(dpy, vi, 0, GL_TRUE);
-
-  /* create a color map */
-  cmap = XCreateColormap(dpy, RootWindow(dpy, vi->screen),
-			 vi->visual, AllocNone);
-
-  /* create a window */
-  swa.colormap = cmap;
-  swa.border_pixel = 0;
-  swa.event_mask = StructureNotifyMask;
-  win = XCreateWindow(dpy, RootWindow(dpy, vi->screen), 0, 0, 400, 300,
-		      0, vi->depth, InputOutput, vi->visual,
-		      CWBorderPixel|CWColormap|CWEventMask, &swa);
-  XMapWindow(dpy, win);
-  XIfEvent(dpy, &event, WaitForNotify, (char*)win);
-
-  /* connect the context to the window */
-  glXMakeCurrent(dpy, win, cx);
-
-  init();
-
-  while (1) {
-    draw();
-    glXSwapBuffers(dpy,win);
-    /* glXWaitGL(); */
-
-    if (XPending(dpy) > 0) {
-      XNextEvent(dpy,&xev);
-      switch(xev.type) {
-      case KeyPress:
-	XLookupString((XKeyEvent *)&xev,buf,80,&keysym,&status);
-	switch(keysym) {
-	case XK_Left:
-	  break;
-	case XK_Escape:
-	  goto the_end;
-	  break;
-	}
-	break;
-      case ConfigureNotify:
-	{
-	  int width,height;
-	  width = xev.xconfigure.width;
-	  height = xev.xconfigure.height;
-	  glXWaitX();
-          reshape(width, height);
-	}
-	break;
-      }
-    } else {
-      idle();
-    }
-  }
- the_end:
-  return 0;
+int main(int argc, char **argv) 
+{
+    return ui_loop(argc, argv, "texobj");
 }
 
 

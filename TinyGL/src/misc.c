@@ -64,7 +64,7 @@ void glopEnableDisable(GLContext *c,GLParam *p)
     c->normalize_enabled=v;
     break;
   case GL_DEPTH_TEST:
-    /* TODO: depth test cannot be disabled */
+    c->depth_test = v;
     break;
   case GL_POLYGON_OFFSET_FILL:
     if (v) c->offset_states |= TGL_OFFSET_FILL;

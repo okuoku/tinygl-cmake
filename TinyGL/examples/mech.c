@@ -63,7 +63,7 @@
 #include <GL/gl.h>
 #include <GL/glx.h>
 #include "glu.h"
-#include <X11/keysym.h>
+#include "ui.h"
 
 /* end of header files */
 
@@ -1241,10 +1241,11 @@ display(void)
 #endif
   glPopMatrix();
   glFlush();
+  tkSwapBuffers();
 }
 
 void
-myinit(void)
+init(void)
 {
   char i = 1;
 
@@ -1265,7 +1266,7 @@ myinit(void)
 }
 
 void
-myReshape(int w, int h)
+reshape(int w, int h)
 {
   glViewport(0, 0, w, h);
   glMatrixMode(GL_PROJECTION);
@@ -1382,7 +1383,7 @@ animation(void)
 
 #endif
 
-void keyboard(unsigned char key)
+GLenum key(int key, GLenum mask)
 {
 
   int i = 0;
@@ -1609,7 +1610,24 @@ void keyboard(unsigned char key)
   case 't':
     Toggle();
     break;
+
+  case KEY_LEFT:
+      TurnLeft();
+      break;
+  case KEY_RIGHT:
+      TurnRight();
+      break;
+  case KEY_UP:
+      TurnBackwards();
+      break;
+  case KEY_DOWN:
+      TurnForwards();
+      break;
+      
+  case ' ':
+      FireCannon();
   }
+  return 0;
 }
 
 void printHelp(void)
@@ -1698,6 +1716,17 @@ void printHelp(void)
 #endif
 }
 
+void idle( void )
+{
+    /* animate the mech */
+
+    animation();
+
+    /* draw the Mech */
+
+    display();
+}
+
 /* #define PROFILE */
 
 #ifdef PROFILE
@@ -1713,154 +1742,12 @@ extern int count_triangles;
 int
 main(int argc, char **argv)
 {
-  int wx=640,wy=480;
-//  int wx=320,wy=240;
-  int cmd;
-
-  static int attributeList[] = { GLX_RGBA, GLX_DOUBLEBUFFER, None };
-  static char *title="Mech";
-  Display *dpy;
-  XSizeHints hint;
-  XVisualInfo *vi;
-  Colormap cmap;
-  Window win;
-  GLXContext cx;
-  XEvent xev;
-  KeySym keysym;
-  XComposeStatus status;
-  char buf[80];
-
 #ifdef LINUX_TEST_FLOAT
   /* for debuging floating point errors under Linux */
   __setfpucw ( 0x1372 );
 #endif
 
-  /* get a connection */
-  dpy = XOpenDisplay("");
-  if (dpy == NULL) {
-    fprintf(stderr, "Error while initializing display\n");
-    exit(1);
-  }
-
-  /* get an appropriate visual */
-  vi = glXChooseVisual(dpy, DefaultScreen(dpy), attributeList);
-  if (vi == NULL) {
-    fprintf(stderr, "No suitable visual for glx\n");
-    exit(1);
-  }
-    
-  /* create a GLX context */
-  cx = glXCreateContext(dpy, vi, 0, GL_TRUE);
-  
-  /* create a color map */
-  cmap = XCreateColormap(dpy, RootWindow(dpy, vi->screen),
-                         vi->visual, AllocNone);
-  
-
-  /* create a window */
-  hint.x = 0;
-  hint.y = 0;
-  hint.width = wx;
-  hint.height = wy;
-  hint.flags = PPosition | PSize;
-  
-  win = XCreateSimpleWindow (dpy,
-                             DefaultRootWindow (dpy),
-                             hint.x, hint.y,
-                             hint.width, hint.height,
-                             4, BlackPixel (dpy, vi->screen), 
-                             WhitePixel (dpy, vi->screen));
-  
-  XSelectInput(dpy, win, StructureNotifyMask);
-
-  XSetStandardProperties (dpy, win, 
-                          title, title, 
-                          None, NULL, 0, &hint);
-
-  XMapWindow(dpy, win);
-  
-  /* Wait for map. */
-  while(1) {
-    XEvent	xev;
-    XNextEvent(dpy, &xev);
-    if(xev.type == MapNotify && xev.xmap.event == win) break;
-  }
-  XSelectInput(dpy, win, KeyPressMask);
-
-  /* connect the context to the window */
-  glXMakeCurrent(dpy, win, cx);
-
-  myinit();
-  myReshape(wx,wy);
-  /* glDebug(1); */
   Toggle();
-
-  cmd=0;
-
-  while (1) {
-
-    if (XPending(dpy) > 0) {
-
-      XNextEvent(dpy,&xev);
-      if (xev.type == KeyPress) {
-
-        XLookupString((XKeyEvent *)&xev,buf,sizeof(buf),&keysym,&status);
-        cmd=0;
-        switch (keysym) {
-        case XK_Escape:
-        case XK_q:
-          goto exit_loop;
-#if 0
-        case XK_Left:
-        case XK_Right:
-        case XK_Up:
-        case XK_Down:
-#endif
-        case XK_Prior:
-        case XK_Next:
-        case XK_Home:
-        case XK_End:
-          cmd = keysym;
-          break;
-
-        case XK_Left:
-          TurnLeft();
-          break;
-        case XK_Right:
-          TurnRight();
-          break;
-        case XK_Up:
-          TurnBackwards();
-          break;
-        case XK_Down:
-          TurnForwards();
-          break;
-
-        case XK_space:
-          FireCannon();
-          break;
-        default:
-          keyboard(keysym);
-          break;
-        }
-      }
-    }
-
-    /* animate the mech */
-    animation();
-
-    /* draw the Mech */
-
-    display();
-#ifdef PROFILE
-    count_triangles=0;
-    printf("nb triangles=%d\n",count_triangles);
-#endif
-
-    glXSwapBuffers(dpy,win);
-
-  }
-exit_loop:
-
-  return 0;
+  
+  return ui_loop(argc, argv, "mech");
 }

@@ -13,8 +13,9 @@ GL_LIGHTx, GL_POLYGON_OFFSET_FILL, GL_POLYGON_OFFSET_POINT,
 GL_POLYGON_OFFSET_LINE
 
 
-- GL_DEPTH_TEST is accepted, but it *cannot* be disabled. The
-DepthMode is hardcoded as GL_LESS (OpenGL default).
+- GL_DEPTH_TEST is accepted, but it is only used for lines. For all
+  other primitives, Z buffer use is assumed.  The DepthMode is
+  hardcoded as GL_LESS (OpenGL default).
 
 ************ glShadeModel
 

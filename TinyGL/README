@@ -1,4 +1,4 @@
-TinyGL 0.2 (c) 1997,1998,1999 Fabrice Bellard.
+TinyGL 0.3 (c) 1997,1998,1999,2000 Fabrice Bellard.
 
 General Description:
 --------------------
@@ -20,7 +20,9 @@ Mesa by Brian Paul et al.)
 - Zlib-like licence for easy integration in commercial designs (read
 the LICENCE file).
 
-- Subset of GLX for easy testing with X Window.
+- Subset of GLX for easy testing with X Window. 
+
+- GLX like API (NGLX) to use it with NanoX in MicroWindows/NanoX.
 
 - Subset of BGLView under BeOS.
 
@@ -49,20 +51,20 @@ succesfully on x86-Linux and sparc-Solaris.
 Examples:
 ---------
 
-I took two simple examples from the Mesa package to test the main
+I took three simple examples from the Mesa package to test the main
 functions of TinyGL. You can link them to either TinyGL, Mesa or any
-other OpenGL/GLX implementation.
+other OpenGL/GLX implementation. You can also compile them with
+Microwindows.
 
-- The first example (texobj) illustrates the use of texture
-objects. Its shows the speed of TinyGL in this case.
+- texobj illustrates the use of texture objects. Its shows the speed
+of TinyGL in this case.
 
-- The second example (glutmech) comes from the GLUT packages. It is
-much bigger and slower because it uses the lightening. I have just
-included some GLU functions and suppressed the GLUT related code to
-make it work. It shows the display list handling of TinyGL in
-particular. You can look at the source code to learn the keys to move
-the robot. The key 't' toggles between shaded rendering and wire
-frame.
+- glutmech comes from the GLUT packages. It is much bigger and slower
+because it uses the lightening. I have just included some GLU
+functions and suppressed the GLUT related code to make it work. It
+shows the display list handling of TinyGL in particular. You can look
+at the source code to learn the keys to move the robot. The key 't'
+toggles between shaded rendering and wire frame.
 
 - You can download and compile the VReng project to see that TinyGL
 has been successfully used in a big project

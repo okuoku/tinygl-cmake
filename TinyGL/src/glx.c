@@ -1,13 +1,25 @@
 /* simple glx driver for TinyGL */
-
-#ifndef __BEOS__
-
 #include <GL/glx.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <X11/extensions/XShm.h>
 #include "zgl.h"
-#include "zglx.h"
+
+typedef struct {
+  GLContext *gl_context;
+  Display *display;
+  XVisualInfo visual_info;
+  int xsize,ysize;
+  XImage *ximage;
+  GC gc;
+  Colormap cmap;
+  Drawable drawable;
+
+  /* shared memory */
+  int shm_use;
+  XShmSegmentInfo *shm_info;
+  int CompletionType;
+} TinyGLXContext;
 
 Bool glXQueryExtension( Display *dpy, int *errorb, int *event )
 {
@@ -175,6 +187,7 @@ static int create_ximage(TinyGLXContext *ctx,
     goto no_shm2;
   }
   
+  ctx->CompletionType=XShmGetEventBase(ctx->display) + ShmCompletion;
   /* shared memory is OK !! */
 
   return 0;
@@ -345,6 +358,14 @@ Bool glXMakeCurrent( Display *dpy, GLXDrawable drawable,
   return True;
 }
 
+static Bool WaitForShmCompletion(Display *dpy, XEvent *event, char *arg) 
+{
+    TinyGLXContext *ctx=(TinyGLXContext *) arg;
+
+    return (event->type == ctx->CompletionType) && 
+        ( ((XShmCompletionEvent *)event)->drawable == (Window)ctx->drawable); 
+}
+
 void glXSwapBuffers( Display *dpy, GLXDrawable drawable )
 {
   GLContext *gl_context;
@@ -364,9 +385,12 @@ void glXSwapBuffers( Display *dpy, GLXDrawable drawable )
 
   /* draw the ximage */
   if (ctx->shm_use) {
-    XShmPutImage(dpy,drawable,ctx->gc,
-                 ctx->ximage,0,0,0,0,ctx->ximage->width, ctx->ximage->height,
-                 False);
+      XEvent event;
+
+      XShmPutImage(dpy,drawable,ctx->gc,
+                   ctx->ximage,0,0,0,0,ctx->ximage->width, ctx->ximage->height,
+                   True);
+      XIfEvent(dpy, &event, WaitForShmCompletion, (char*)ctx);
   } else {
     XPutImage(dpy, drawable, ctx->gc, 
               ctx->ximage, 0, 0, 0, 0, ctx->ximage->width, ctx->ximage->height);
@@ -382,6 +406,3 @@ void glXWaitGL( void )
 void glXWaitX( void )
 {
 }
-
-#endif /* !__BEOS__ */
-

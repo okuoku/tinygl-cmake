@@ -195,6 +195,7 @@ typedef struct GLContext {
   M4 matrix_model_view_inv;
   M4 matrix_model_projection;
   int matrix_model_projection_updated;
+  int matrix_model_projection_no_w_transform; 
   int apply_texture_matrix;
 
   /* viewport */
@@ -229,6 +230,7 @@ typedef struct GLContext {
 
   /* current vertex state */
   V4 current_color;
+  unsigned int longcurrent_color[3]; /* precomputed integer color */
   V4 current_normal;
   V4 current_tex_coord;
   int current_edge_flag;
@@ -269,6 +271,9 @@ typedef struct GLContext {
   void *opaque;
   /* resize viewport function */
   int (*gl_resize_viewport)(struct GLContext *c,int *xsize,int *ysize);
+
+  /* depth test */
+  int depth_test;
 } GLContext;
 
 extern GLContext *gl_ctx;

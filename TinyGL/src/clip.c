@@ -23,12 +23,19 @@ void gl_transform_to_viewport(GLContext *c,GLVertex *v)
   v->zp.z= (int) ( v->pc.Z * winv * c->viewport.scale.Z 
                    + c->viewport.trans.Z );
   /* color */
-  v->zp.r=(int)(v->color.v[0] * (ZB_POINT_RED_MAX - ZB_POINT_RED_MIN) 
-    + ZB_POINT_RED_MIN);
-  v->zp.g=(int)(v->color.v[1] * (ZB_POINT_GREEN_MAX - ZB_POINT_GREEN_MIN) 
-    + ZB_POINT_GREEN_MIN);
-  v->zp.b=(int)(v->color.v[2] * (ZB_POINT_BLUE_MAX - ZB_POINT_BLUE_MIN) 
-    + ZB_POINT_BLUE_MIN);
+  if (c->lighting_enabled) {
+      v->zp.r=(int)(v->color.v[0] * (ZB_POINT_RED_MAX - ZB_POINT_RED_MIN) 
+                    + ZB_POINT_RED_MIN);
+      v->zp.g=(int)(v->color.v[1] * (ZB_POINT_GREEN_MAX - ZB_POINT_GREEN_MIN) 
+                    + ZB_POINT_GREEN_MIN);
+      v->zp.b=(int)(v->color.v[2] * (ZB_POINT_BLUE_MAX - ZB_POINT_BLUE_MIN) 
+                    + ZB_POINT_BLUE_MIN);
+  } else {
+      /* no need to convert to integer if no lighting : take current color */
+      v->zp.r = c->longcurrent_color[0];
+      v->zp.g = c->longcurrent_color[1];
+      v->zp.b = c->longcurrent_color[2];
+  }
   
   /* texture */
 
@@ -116,7 +123,10 @@ void gl_draw_line(GLContext *c,GLVertex *p1,GLVertex *p2)
     if (c->render_mode == GL_SELECT) {
       gl_add_select1(c,p1->zp.z,p2->zp.z,p2->zp.z);
     } else {
-      ZB_line(c->zb,&p1->zp,&p2->zp);
+        if (c->depth_test)
+            ZB_line_z(c->zb,&p1->zp,&p2->zp);
+        else
+            ZB_line(c->zb,&p1->zp,&p2->zp);
     }
   } else if ( (cc1&cc2) != 0 ) {
     return;
@@ -144,7 +154,10 @@ void gl_draw_line(GLContext *c,GLVertex *p1,GLVertex *p2)
       gl_transform_to_viewport(c,&q1);
       gl_transform_to_viewport(c,&q2);
 
-      ZB_line(c->zb,&q1.zp,&q2.zp);
+      if (c->depth_test)
+          ZB_line_z(c->zb,&q1.zp,&q2.zp);
+      else
+          ZB_line(c->zb,&q1.zp,&q2.zp);
     }
   }
 }
@@ -302,10 +315,12 @@ static void gl_draw_triangle_clip(GLContext *c,
 
     /* this test can be true only in case of rounding errors */
     if (clip_bit == 6) {
+#if 0
       printf("Error:\n");
       printf("%f %f %f %f\n",p0->pc.X,p0->pc.Y,p0->pc.Z,p0->pc.W);
       printf("%f %f %f %f\n",p1->pc.X,p1->pc.Y,p1->pc.Z,p1->pc.W);
       printf("%f %f %f %f\n",p2->pc.X,p2->pc.Y,p2->pc.Z,p2->pc.W);
+#endif
       return;
     }
   
@@ -403,9 +418,15 @@ void gl_draw_triangle_fill(GLContext *c,
 void gl_draw_triangle_line(GLContext *c,
                            GLVertex *p0,GLVertex *p1,GLVertex *p2)
 {
-  if (p0->edge_flag) ZB_line(c->zb,&p0->zp,&p1->zp);
-  if (p1->edge_flag) ZB_line(c->zb,&p1->zp,&p2->zp);
-  if (p2->edge_flag) ZB_line(c->zb,&p2->zp,&p0->zp);
+    if (c->depth_test) {
+        if (p0->edge_flag) ZB_line_z(c->zb,&p0->zp,&p1->zp);
+        if (p1->edge_flag) ZB_line_z(c->zb,&p1->zp,&p2->zp);
+        if (p2->edge_flag) ZB_line_z(c->zb,&p2->zp,&p0->zp);
+    } else {
+        if (p0->edge_flag) ZB_line(c->zb,&p0->zp,&p1->zp);
+        if (p1->edge_flag) ZB_line(c->zb,&p1->zp,&p2->zp);
+        if (p2->edge_flag) ZB_line(c->zb,&p2->zp,&p0->zp);
+    }
 }
 
 

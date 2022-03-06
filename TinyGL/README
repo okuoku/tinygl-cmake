@@ -17,8 +17,8 @@ The main features of TinyGL are:
 - Header compatible with OpenGL (the headers are adapted from the very good
 Mesa by Brian Paul et al.)
 
-- Zlib-like licence for easy integration in commercial designs (read
-the LICENCE file).
+- MIT license for easy integration in commercial designs (read
+the LICENSE file).
 
 - Subset of GLX for easy testing with X Window. 
 

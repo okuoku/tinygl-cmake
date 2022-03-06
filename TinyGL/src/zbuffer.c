@@ -185,7 +185,7 @@ static void ZB_copyFrameBufferRGB32(ZBuffer * zb,
 	    p += 4;
 	} while (--n > 0);
 
-	p1 += linesize;
+	p1 = (unsigned int *)((char *)p1 + linesize);
     }
 }
 
@@ -265,7 +265,7 @@ static void ZB_copyFrameBufferRGB24(ZBuffer * zb,
 	    p += 3;
 	} while (--n > 0);
 
-	(char *) p1 += linesize;
+	p1 = (unsigned int *)((char *)p1 + linesize);
     }
 }
 
@@ -287,12 +287,12 @@ void ZB_copyFrameBuffer(ZBuffer * zb, void *buf,
 #endif
 #ifdef TGL_FEATURE_32_BITS
     case ZB_MODE_RGBA:
-	ZB_copyFrameBufferRGB32(zb, buf, linesize >> 1);
+	ZB_copyFrameBufferRGB32(zb, buf, linesize);
 	break;
 #endif
 #ifdef TGL_FEATURE_24_BITS
     case ZB_MODE_RGB24:
-	ZB_copyFrameBufferRGB24(zb, buf, linesize >> 1);
+	ZB_copyFrameBufferRGB24(zb, buf, linesize);
 	break;
 #endif
     default:

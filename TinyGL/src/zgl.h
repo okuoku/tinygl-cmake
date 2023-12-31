@@ -337,8 +337,8 @@ void dprintf(const char *, ...);
 
 #ifdef DEBUG
 
-#define dprintf(format, args...)  \
-  fprintf(stderr,"In '%s': " format "\n",__FUNCTION__, ##args);
+#define dprintf(format, ...)  \
+  fprintf(stderr,"In '%s': " format "\n",__FUNCTION__, __VA_ARGS__);
 
 #else
 

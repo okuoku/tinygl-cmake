@@ -1,3 +1,4 @@
+#define _USE_MATH_DEFINES /* FOR MSVC */
 #include "zgl.h"
 
 void gl_print_matrix( const float *m)
